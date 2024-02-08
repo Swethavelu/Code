@@ -68,7 +68,7 @@ function Generate-HTMLReport {
             $htmlContent += @"
                 <tr>
                     <td>$($result.FullName)</td>
-                    <td>$($result.Length)</td>
+                     <td>$([math]::Round($result.Length / 1KB, 2)) KB</td>
                     <td>$($result.LastWriteTime)</td>
                     <td>$comparisonResult</td>
                 </tr>
