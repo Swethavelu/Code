@@ -40,30 +40,26 @@ function Generate-HTMLReport {
     $environments.Keys | ForEach-Object {
         $environment = $_
         $htmlContent += @"
-        <h3>$environment Environment Comparison Results</h3>
+        <h3>$environment Environment File Details</h3>
         <table>
             <thead>
                 <tr>
                     <th>File Path</th>
                     <th>Size (KB)</th>
                     <th>Last Write Time (UTC)</th>
-                    <th>Comparison Result</th>
                 </tr>
             </thead>
             <tbody>
 "@
 
-        $filteredResults = $results | Where-Object { $_.SideIndicator -eq "<=" -and $_.Path -match "\\$environment\\" }
+        $filteredResults = $results | Where-Object { $_.Path -match "\\$environment\\" }
 
         foreach ($result in $filteredResults) {
-            $comparisonResult = "Non-Matching"
-
             $htmlContent += @"
                 <tr>
                     <td>$($result.FullName)</td>
                     <td>$([math]::Round($result.Length / 1KB, 2)) KB</td>
                     <td>$($result.LastWriteTime)</td>
-                    <td>$comparisonResult</td>
                 </tr>
 "@
         }
