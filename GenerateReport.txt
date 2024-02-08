@@ -1,8 +1,3 @@
-# GenerateReport.ps1
-
-# Load configuration
-. .\config.ps1
-
 # Function to generate HTML report
 function Generate-HTMLReport {
     param (
@@ -50,7 +45,7 @@ function Generate-HTMLReport {
             <thead>
                 <tr>
                     <th>File Path</th>
-                    <th>Size (Bytes)</th>
+                    <th>Size (KB)</th>
                     <th>Last Write Time (UTC)</th>
                     <th>Comparison Result</th>
                 </tr>
@@ -58,17 +53,15 @@ function Generate-HTMLReport {
             <tbody>
 "@
 
-        foreach ($result in $results) {
-            if ($result.SideIndicator -eq "<=") {
-                $comparisonResult = "Non-Matching"
-            } else {
-                $comparisonResult = "Matching"
-            }
+        $filteredResults = $results | Where-Object { $_.SideIndicator -eq "<=" -and $_.Path -like "*\$($environment)\*" }
+
+        foreach ($result in $filteredResults) {
+            $comparisonResult = "Non-Matching"
 
             $htmlContent += @"
                 <tr>
                     <td>$($result.FullName)</td>
-                     <td>$([math]::Round($result.Length / 1KB, 2)) KB</td>
+                    <td>$([math]::Round($result.Length / 1KB, 2)) KB</td>
                     <td>$($result.LastWriteTime)</td>
                     <td>$comparisonResult</td>
                 </tr>
