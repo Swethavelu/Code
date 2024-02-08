@@ -53,7 +53,7 @@ function Generate-HTMLReport {
             <tbody>
 "@
 
-        $filteredResults = $results | Where-Object { $_.SideIndicator -eq "<=" -and $_.Path -like "*\$($environment)\*" }
+        $filteredResults = $results | Where-Object { $_.SideIndicator -eq "<=" -and $_.Path -match "\\$environment\\" }
 
         foreach ($result in $filteredResults) {
             $comparisonResult = "Non-Matching"
