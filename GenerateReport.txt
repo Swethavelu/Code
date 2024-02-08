@@ -42,34 +42,46 @@ function Generate-HTMLReport {
 
     $results = Get-Content $outputPath | ConvertFrom-Csv
 
-    $htmlContent += @"
-    <h3>Comparison Results</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>File Path</th>
-                <th>Size (Bytes)</th>
-                <th>Last Write Time (UTC)</th>
-                <th>Comparison Result</th>
-            </tr>
-        </thead>
-        <tbody>
+    $environments.Keys | ForEach-Object {
+        $environment = $_
+        $htmlContent += @"
+        <h3>$environment Environment Comparison Results</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>File Path</th>
+                    <th>Size (Bytes)</th>
+                    <th>Last Write Time (UTC)</th>
+                    <th>Comparison Result</th>
+                </tr>
+            </thead>
+            <tbody>
 "@
 
-    foreach ($result in $results) {
+        foreach ($result in $results) {
+            if ($result.SideIndicator -eq "<=") {
+                $comparisonResult = "Non-Matching"
+            } else {
+                $comparisonResult = "Matching"
+            }
+
+            $htmlContent += @"
+                <tr>
+                    <td>$($result.FullName)</td>
+                    <td>$($result.Length)</td>
+                    <td>$($result.LastWriteTime)</td>
+                    <td>$comparisonResult</td>
+                </tr>
+"@
+        }
+
         $htmlContent += @"
-            <tr>
-                <td>$($result.FullName)</td>
-                <td>$($result.Length)</td>
-                <td>$($result.LastWriteTime.ToUniversalTime())</td>
-                <td>$($result.SideIndicator)</td>
-            </tr>
+            </tbody>
+        </table>
 "@
     }
 
     $htmlContent += @"
-        </tbody>
-    </table>
 </body>
 </html>
 "@
