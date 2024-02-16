@@ -1,12 +1,13 @@
-# Function to generate HTML table for folder sizes
-function Generate-FolderSizeHTMLTable {
+# Function to generate HTML table for folder sizes and last write time
+function Generate-FolderInfoHTMLTable {
     param (
         [string]$folderName,
         [int]$totalSizeKB,
+        [DateTime]$lastWriteTime,
         [hash]$subfolderSizes
     )
 
-    $htmlTable = "<h2>$folderName Folder Size</h2>"
+    $htmlTable = "<h2>$folderName Folder Information</h2>"
     $htmlTable += "<table border='1'><tr><th>Subfolder</th><th>Size (KB)</th></tr>"
 
     foreach ($subfolder in $subfolderSizes.Keys) {
@@ -15,15 +16,16 @@ function Generate-FolderSizeHTMLTable {
     }
 
     $htmlTable += "<tr><td>Total Size</td><td>$totalSizeKB KB</td></tr>"
+    $htmlTable += "<tr><td>Last Write Time</td><td>$lastWriteTime</td></tr>"
     $htmlTable += "</table>"
     return $htmlTable
 }
 
 # ... (rest of the script)
 
-# Generate HTML tables for folder sizes
-$htmlFolderSizeTableFolder1 = Generate-FolderSizeHTMLTable -folderName "Folder 1" -totalSizeKB ($totalSizeFolder1 / 1KB) -subfolderSizes $subfolderSizesFolder1
-$htmlFolderSizeTableFolder2 = Generate-FolderSizeHTMLTable -folderName "Folder 2" -totalSizeKB ($totalSizeFolder2 / 1KB) -subfolderSizes $subfolderSizesFolder2
+# Generate HTML tables for folder info
+$htmlFolderInfoTableFolder1 = Generate-FolderInfoHTMLTable -folderName "Folder 1" -totalSizeKB ($totalSizeFolder1 / 1KB) -lastWriteTime $filesFolder1 | Out-String
+$htmlFolderInfoTableFolder2 = Generate-FolderInfoHTMLTable -folderName "Folder 2" -totalSizeKB ($totalSizeFolder2 / 1KB) -lastWriteTime $filesFolder2 | Out-String
 
 # ... (rest of the script)
 
@@ -38,11 +40,11 @@ $htmlReport = @"
     $htmlTableFolder1
     <p>Total Size for Folder 1: $($totalSizeFolder1 / 1KB) KB</p>
     $htmlTableSubfoldersFolder1
-    $htmlFolderSizeTableFolder1
+    $htmlFolderInfoTableFolder1
     $htmlTableFolder2
     <p>Total Size for Folder 2: $($totalSizeFolder2 / 1KB) KB</p>
     $htmlTableSubfoldersFolder2
-    $htmlFolderSizeTableFolder2
+    $htmlFolderInfoTableFolder2
 </body>
 </html>
 "@
