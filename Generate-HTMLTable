@@ -6,11 +6,11 @@ function Generate-HTMLTable {
     )
 
     $htmlTable = "<h2>$folderName</h2>"
-    $htmlTable += "<table border='1'><tr><th>File Name</th><th>Size (KB)</th><th>Last Write Time</th></tr>"
+    $htmlTable += "<table border='1'><tr><th>File Path</th><th>Size (KB)</th><th>Last Write Time</th></tr>"
 
     foreach ($file in $fileInfo) {
         $sizeInKB = [math]::Ceiling($file.Length / 1KB)
-        $htmlTable += "<tr><td>$($file.Name)</td><td>$sizeInKB KB</td><td>$($file.LastWriteTime)</td></tr>"
+        $htmlTable += "<tr><td>$($file.FullName)</td><td>$sizeInKB KB</td><td>$($file.LastWriteTime)</td></tr>"
     }
 
     $htmlTable += "</table>"
@@ -48,9 +48,15 @@ $filesFolder2, $totalSizeFolder2, $subfolderSizesFolder2 = Get-AllFileInfo -fold
 
 # Generate HTML tables for files and subfolders
 $htmlTableFolder1 = Generate-HTMLTable -folderName "Folder 1 Files" -fileInfo $filesFolder1
-$htmlTableSubfoldersFolder1 = Generate-HTMLTable -folderName "Folder 1 Subfolder Files" -fileInfo $subfolderSizesFolder1.Keys
+$htmlTableSubfoldersFolder1 = foreach ($subfolder in $subfolderSizesFolder1.Keys) {
+    $sizeInKB = [math]::Ceiling($subfolderSizesFolder1[$subfolder] / 1KB)
+    "<p>Subfolder: $subfolder, Size: $sizeInKB KB</p>"
+}
 $htmlTableFolder2 = Generate-HTMLTable -folderName "Folder 2 Files" -fileInfo $filesFolder2
-$htmlTableSubfoldersFolder2 = Generate-HTMLTable -folderName "Folder 2 Subfolder Files" -fileInfo $subfolderSizesFolder2.Keys
+$htmlTableSubfoldersFolder2 = foreach ($subfolder in $subfolderSizesFolder2.Keys) {
+    $sizeInKB = [math]::Ceiling($subfolderSizesFolder2[$subfolder] / 1KB)
+    "<p>Subfolder: $subfolder, Size: $sizeInKB KB</p>"
+}
 
 # Generate HTML report
 $htmlReport = @"
