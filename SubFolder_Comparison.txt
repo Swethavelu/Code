@@ -1,41 +1,31 @@
-# Function to generate HTML table from file information
-function Generate-HTMLTable {
+# Function to generate HTML table for folder sizes
+function Generate-FolderSizeHTMLTable {
     param (
         [string]$folderName,
-        [array]$fileInfo
+        [int]$totalSizeKB,
+        [hash]$subfolderSizes
     )
 
-    $htmlTable = "<h2>$folderName</h2>"
-    $htmlTable += "<table border='1'><tr><th>File Path</th><th>Size (KB)</th><th>Last Write Time</th></tr>"
+    $htmlTable = "<h2>$folderName Folder Size</h2>"
+    $htmlTable += "<table border='1'><tr><th>Subfolder</th><th>Size (KB)</th></tr>"
 
-    foreach ($file in $fileInfo) {
-        $htmlTable += "<tr><td>$($file.FullName)</td><td>$($file.Length / 1KB)</td><td>$($file.LastWriteTime)</td></tr>"
+    foreach ($subfolder in $subfolderSizes.Keys) {
+        $sizeInKB = [math]::Ceiling($subfolderSizes[$subfolder] / 1KB)
+        $htmlTable += "<tr><td>$subfolder</td><td>$sizeInKB KB</td></tr>"
     }
 
+    $htmlTable += "<tr><td>Total Size</td><td>$totalSizeKB KB</td></tr>"
     $htmlTable += "</table>"
     return $htmlTable
 }
 
-# Function to recursively fetch file information from a folder
-function Get-AllFileInfo {
-    param (
-        [string]$folderPath
-    )
+# ... (rest of the script)
 
-    Get-ChildItem -Path $folderPath -Recurse
-}
+# Generate HTML tables for folder sizes
+$htmlFolderSizeTableFolder1 = Generate-FolderSizeHTMLTable -folderName "Folder 1" -totalSizeKB ($totalSizeFolder1 / 1KB) -subfolderSizes $subfolderSizesFolder1
+$htmlFolderSizeTableFolder2 = Generate-FolderSizeHTMLTable -folderName "Folder 2" -totalSizeKB ($totalSizeFolder2 / 1KB) -subfolderSizes $subfolderSizesFolder2
 
-# Folder paths
-$folder1 = "C:\Path\To\Folder1"
-$folder2 = "C:\Path\To\Folder2"
-
-# Fetch file information from folders and subfolders
-$filesFolder1 = Get-AllFileInfo -folderPath $folder1
-$filesFolder2 = Get-AllFileInfo -folderPath $folder2
-
-# Generate HTML tables
-$htmlTableFolder1 = Generate-HTMLTable -folderName "Folder 1" -fileInfo $filesFolder1
-$htmlTableFolder2 = Generate-HTMLTable -folderName "Folder 2" -fileInfo $filesFolder2
+# ... (rest of the script)
 
 # Generate HTML report
 $htmlReport = @"
@@ -46,13 +36,15 @@ $htmlReport = @"
 </head>
 <body>
     $htmlTableFolder1
+    <p>Total Size for Folder 1: $($totalSizeFolder1 / 1KB) KB</p>
+    $htmlTableSubfoldersFolder1
+    $htmlFolderSizeTableFolder1
     $htmlTableFolder2
+    <p>Total Size for Folder 2: $($totalSizeFolder2 / 1KB) KB</p>
+    $htmlTableSubfoldersFolder2
+    $htmlFolderSizeTableFolder2
 </body>
 </html>
 "@
 
-# Save HTML report to a file
-$htmlReport | Out-File -FilePath "C:\Path\To\Your\Report.html" -Encoding UTF8
-
-# Display success message
-Write-Host "HTML report generated successfully at C:\Path\To\Your\Report.html"
+# ... (rest of the script)
