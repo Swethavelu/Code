@@ -1,24 +1,142 @@
-# CompareFolders.ps1
+# Functions script
 
-# Load configuration
-. .\config.ps1
-
-# Function to compare folders
-function Compare-Folders {
+# Function to generate HTML table from file information
+function Generate-HTMLTable {
     param (
-        [string]$environment1,
-        [string]$environment2
+        [string]$folderName,
+        [array]$fileInfo
     )
 
-    $folderPath1 = $environments[$environment1].FolderPath
-    $folderPath2 = $environments[$environment2].FolderPath
+    $htmlTable = "<h2>$folderName</h2>"
+    $htmlTable += "<table border='1'><tr><th>File Name</th><th>Size (KB)</th><th>Last Write Time</th></tr>"
 
-    $results = Compare-Object (Get-ChildItem -Path $folderPath1 -Recurse | Select-Object FullName, Length, LastWriteTime) `
-                               (Get-ChildItem -Path $folderPath2 -Recurse | Select-Object FullName, Length, LastWriteTime) `
-                               -Property FullName, Length, LastWriteTime -PassThru
+    foreach ($file in $fileInfo) {
+        $sizeInKB = [math]::Ceiling($file.Length / 1KB)
+        $htmlTable += "<tr><td>$($file.Name)</td><td>$sizeInKB KB</td><td>$($file.LastWriteTime)</td></tr>"
+    }
 
-    $results | Export-Csv -Path $OutputPath -NoTypeInformation
+    $htmlTable += "</table>"
+    return $htmlTable
 }
 
-# Compare folders
-Compare-Folders -environment1 "PreProd" -environment2 "Prod"
+# Function to recursively fetch file information from a folder and calculate total size
+function Get-AllFileInfo {
+    param (
+        [string]$folderPath
+    )
+
+    $totalSize = 0
+    $subfolderSizes = @{}
+    $files = Get-ChildItem -Path $folderPath -Recurse
+
+    foreach ($file in $files) {
+        $totalSize += $file.Length
+
+        if ($file.PSIsContainer) {
+            $subfolderSizes[$file.FullName] = (Get-ChildItem -Path $file.FullName -File | Measure-Object -Property Length -Sum).Sum
+        }
+    }
+
+    return $files, $totalSize, $subfolderSizes
+}
+
+# Function to generate HTML table for folder sizes, last write time, and subfolders
+function Generate-FolderInfoHTMLTable {
+    param (
+        [string]$folderName,
+        [int]$totalSizeKB,
+        [DateTime]$lastWriteTime,
+        [System.Collections.Hashtable]$subfolderSizes
+    )
+
+    $htmlTable = "<h2>$folderName Folder Information</h2>"
+    $htmlTable += "<table border='1'><tr><th>Subfolder</th><th>Size (KB)</th></tr>"
+
+    foreach ($subfolder in $subfolderSizes.Keys) {
+        $sizeInKB = [math]::Ceiling($subfolderSizes[$subfolder] / 1KB)
+        $htmlTable += "<tr><td>$subfolder</td><td>$sizeInKB KB</td></tr>"
+    }
+
+    $htmlTable += "<tr><td>Total Size</td><td>$totalSizeKB KB</td></tr>"
+    $htmlTable += "<tr><td>Last Write Time</td><td>$lastWriteTime</td></tr>"
+    $htmlTable += "</table>"
+    return $htmlTable
+}
+
+# Function to generate HTML table from file comparison result
+function Generate-ComparisonHTMLTable {
+    param (
+        [array]$filesFolder1,
+        [array]$filesFolder2
+    )
+
+    $htmlTable = "<h2>File Comparison Report</h2>"
+    $htmlTable += "<table border='1'><tr><th>File Path</th><th>Size Folder 1 (KB)</th><th>Size Folder 2 (KB)</th><th>Result</th></tr>"
+
+    foreach ($file1 in $filesFolder1) {
+        $matchingFile = $filesFolder2 | Where-Object { $_.Name -eq $file1.Name -and $_.Length -eq $file1.Length }
+
+        $sizeInKB1 = [math]::Ceiling($file1.Length / 1KB)
+        $sizeInKB2 = if ($matchingFile) { [math]::Ceiling($matchingFile.Length / 1KB) } else { "N/A" }
+
+        $result = if ($matchingFile) { "Matching" } else { "Not Matching" }
+
+        $htmlTable += "<tr><td>$($file1.FullName)</td><td>$sizeInKB1 KB</td><td>$sizeInKB2</td><td>$result</td></tr>"
+    }
+
+    $htmlTable += "</table>"
+    return $htmlTable
+}
+
+# Function to generate HTML report with file information, folder sizes, and file comparison
+function Generate-FileInformationReport {
+    param (
+        [string]$Folder1,
+        [string]$Folder2,
+        [string]$HtmlOutputPath
+    )
+
+    # Fetch file information from folders and subfolders
+    $filesFolder1, $totalSizeFolder1, $subfolderSizesFolder1 = Get-AllFileInfo -folderPath $Folder1
+    $filesFolder2, $totalSizeFolder2, $subfolderSizesFolder2 = Get-AllFileInfo -folderPath $Folder2
+
+    # Generate HTML tables for files and subfolders
+    $htmlTableFolder1 = Generate-HTMLTable -folderName "Folder 1 Files" -fileInfo $filesFolder1
+    $htmlTableSubfoldersFolder1 = Generate-HTMLTable -folderName "Folder 1 Subfolder Files" -fileInfo $subfolderSizesFolder1.Keys
+    $htmlTableFolder2 = Generate-HTMLTable -folderName "Folder 2 Files" -fileInfo $filesFolder2
+    $htmlTableSubfoldersFolder2 = Generate-HTMLTable -folderName "Folder 2 Subfolder Files" -fileInfo $subfolderSizesFolder2.Keys
+
+    # Generate HTML tables for folder sizes
+    $htmlFolderSizeTableFolder1 = Generate-FolderInfoHTMLTable -folderName "Folder 1" -totalSizeKB ($totalSizeFolder1 / 1KB) -lastWriteTime $filesFolder1[0].LastWriteTime -subfolderSizes $subfolderSizesFolder1
+    $htmlFolderSizeTableFolder2 = Generate-FolderInfoHTMLTable -folderName "Folder 2" -totalSizeKB ($totalSizeFolder2 / 1KB) -lastWriteTime $filesFolder2[0].LastWriteTime -subfolderSizes $subfolderSizesFolder2
+
+    # Generate HTML tables for file comparison
+    $htmlComparisonTable = Generate-ComparisonHTMLTable -filesFolder1 $filesFolder1 -filesFolder2 $filesFolder2
+
+    # Generate HTML report
+    $htmlReport = @"
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>File Information Report</title>
+    </head>
+    <body>
+        $htmlTableFolder1
+        <p>Total Size for Folder 1: $($totalSizeFolder1 / 1KB) KB</p>
+        $htmlTableSubfoldersFolder1
+        $htmlFolderSizeTableFolder1
+        $htmlTableFolder2
+        <p>Total Size for Folder 2: $($totalSizeFolder2 / 1KB) KB</p>
+        $htmlTableSubfoldersFolder2
+        $htmlFolderSizeTableFolder2
+        $htmlComparisonTable
+    </body>
+    </html>
+"@
+
+    # Save HTML report to a file
+    $htmlReport | Out-File -FilePath $HtmlOutputPath -Encoding UTF8
+
+    # Display success message
+    Write-Host "HTML report generated successfully at $HtmlOutputPath"
+}
