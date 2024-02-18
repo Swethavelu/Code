@@ -1,0 +1,52 @@
+Install-Package EPPlus
+using System;
+using System.Collections.Generic;
+using OfficeOpenXml;
+
+class ExcelData
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+    // Add more properties as needed
+}
+
+class Program
+{
+    static void Main()
+    {
+        string excelFilePath = "path/to/your/excel/file.xlsx";
+        List<ExcelData> dataList = ReadExcelFile(excelFilePath);
+
+        foreach (var data in dataList)
+        {
+            Console.WriteLine($"Name: {data.Name}, Age: {data.Age}");
+            // Display other properties as needed
+        }
+    }
+
+    static List<ExcelData> ReadExcelFile(string filePath)
+    {
+        List<ExcelData> dataList = new List<ExcelData>();
+
+        using (var package = new ExcelPackage(new System.IO.FileInfo(filePath)))
+        {
+            var worksheet = package.Workbook.Worksheets[0]; // Assuming data is in the first sheet
+
+            int rowCount = worksheet.Dimension.Rows;
+
+            for (int row = 2; row <= rowCount; row++) // Assuming the header is in the first row
+            {
+                var excelData = new ExcelData
+                {
+                    Name = worksheet.Cells[row, 1].Text,
+                    Age = int.Parse(worksheet.Cells[row, 2].Text)
+                    // Add more property assignments as needed
+                };
+
+                dataList.Add(excelData);
+            }
+        }
+
+        return dataList;
+    }
+}
