@@ -24,6 +24,68 @@ class Program
         }
     }
 
+//2nd version:
+using System;
+using System.Collections.Generic;
+using System.Data.OleDb;
+using System.Data;
+
+class ExcelData
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+    // Add more properties as needed
+}
+
+class Program
+{
+    static void Main()
+    {
+        string excelFilePath = "path/to/your/excel/file.xlsx";
+        List<ExcelData> dataList = ReadExcelFile(excelFilePath);
+
+        foreach (var data in dataList)
+        {
+            Console.WriteLine($"Name: {data.Name}, Age: {data.Age}");
+            // Display other properties as needed
+        }
+    }
+
+    static List<ExcelData> ReadExcelFile(string filePath)
+    {
+        List<ExcelData> dataList = new List<ExcelData>();
+
+        string connectionString = $"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={filePath};Extended Properties='Excel 12.0 Xml;HDR=YES;IMEX=1;'";
+        
+        using (OleDbConnection connection = new OleDbConnection(connectionString))
+        {
+            connection.Open();
+
+            string query = "SELECT * FROM [Sheet1$]";
+            using (OleDbCommand command = new OleDbCommand(query, connection))
+            {
+                using (OleDbDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var excelData = new ExcelData
+                        {
+                            Name = reader["Name"].ToString(),
+                            Age = Convert.ToInt32(reader["Age"])
+                            // Add more property assignments as needed
+                        };
+
+                        dataList.Add(excelData);
+                    }
+                }
+            }
+        }
+
+        return dataList;
+    }
+}
+
+
     static List<ExcelData> ReadExcelFile(string filePath)
     {
         List<ExcelData> dataList = new List<ExcelData>();
