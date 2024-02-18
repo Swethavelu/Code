@@ -1,13 +1,14 @@
-# config.ps1
+# Configuration script
 
-$environments = @{
-    PreProd = @{
-        FolderPath = "C:\Path\to\PreProd\ServiceFolder"
-    }
-    Prod = @{
-        FolderPath = "C:\Path\to\Prod\ServiceFolder"
-    }
-}
+# Folder paths
+$folder1 = "C:\Path\To\Folder1"
+$folder2 = "C:\Path\To\Folder2"
 
-$OutputPath = "C:\Path\to\output.txt"
-$HTMLReportPath = "C:\Path\to\ComparisonReport.html"
+# Output HTML path
+$htmlOutputPath = "C:\Path\To\Your\Report.html"
+
+# Import functions script
+. .\functions.ps1
+
+# Call the function to generate the HTML report
+Generate-FileInformationReport -Folder1 $folder1 -Folder2 $folder2 -HtmlOutputPath $htmlOutputPath
