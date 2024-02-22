@@ -1,0 +1,64 @@
+# Function to generate HTML table for folder comparison result
+function Generate-FolderComparisonHTMLTable {
+    param (
+        [string]$sourceFolder,
+        [array]$destinationFolders
+    )
+
+    $htmlTable = "<h2>Folder Comparison Report</h2>"
+    $htmlTable += "<table border='1'><tr><th>File Name</th><th>Size (KB)</th><th>Total Size (KB)</th><th>Last Write Time</th><th>Result</th></tr>"
+
+    # Get files from the source folder
+    $sourceFiles = Get-ChildItem -Path $sourceFolder -Recurse -File
+
+    foreach ($sourceFile in $sourceFiles) {
+        $htmlTable += "<tr>"
+        $htmlTable += "<td>$($sourceFile.Name)</td>"
+
+        # Calculate size of the file in KB
+        $sizeInKB = [math]::Ceiling($sourceFile.Length / 1KB)
+        $htmlTable += "<td>$sizeInKB KB</td>"
+
+        # Calculate total size of the destination folders for the current file
+        $totalSizeInKB = 0
+        $matchingFiles = $true
+
+        foreach ($destinationFolder in $destinationFolders) {
+            $destinationFile = Get-ChildItem -Path $destinationFolder -Recurse -File | Where-Object { $_.Name -eq $sourceFile.Name -and $_.Length -eq $sourceFile.Length }
+
+            if ($destinationFile) {
+                $totalSizeInKB += [math]::Ceiling($destinationFile.Length / 1KB)
+            } else {
+                $matchingFiles = $false
+            }
+        }
+
+        $htmlTable += "<td>$totalSizeInKB KB</td>"
+
+        # Get last write time of the source file
+        $lastWriteTime = $sourceFile.LastWriteTime
+        $htmlTable += "<td>$lastWriteTime</td>"
+
+        # Determine result (Matching or Not Matching)
+        $result = if ($matchingFiles) { "Matching" } else { "Not Matching" }
+        $htmlTable += "<td>$result</td>"
+
+        $htmlTable += "</tr>"
+    }
+
+    $htmlTable += "</table>"
+    return $htmlTable
+}
+
+# Configuration
+$sourceFolder = "C:\Path\To\Source\Folder"
+$destinationFolders = @("C:\Path\To\Destination\Folder1", "C:\Path\To\Destination\Folder2")
+
+# Generate HTML report
+$htmlReport = Generate-FolderComparisonHTMLTable -sourceFolder $sourceFolder -destinationFolders $destinationFolders
+
+# Save HTML report to a file
+$htmlReport | Out-File -FilePath "C:\Path\To\Your\FolderComparisonReport.html" -Encoding UTF8
+
+# Display success message
+Write-Host "Folder comparison report generated successfully at C:\Path\To\Your\FolderComparisonReport.html"
