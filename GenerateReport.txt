@@ -1,54 +1,68 @@
-# Function to generate HTML table from file comparison result
-function Generate-ComparisonHTMLTable {
+# Function to generate HTML table for file comparison result
+function Generate-FileComparisonHTMLTable {
     param (
-        [array]$filesFolder1,
-        [array]$filesFolder2
+        [string]$sourceFolder,
+        [array]$destinationFolders
     )
 
     $htmlTable = "<h2>File Comparison Report</h2>"
-    $htmlTable += "<table border='1'><tr><th>File Path</th><th>Size Folder 1 (KB)</th><th>Size Folder 2 (KB)</th><th>Result</th></tr>"
+    $htmlTable += "<table border='1'><tr><th>File Name</th><th>Source Folder</th>"
 
-    foreach ($file1 in $filesFolder1) {
-        $matchingFile = $filesFolder2 | Where-Object { $_.Name -eq $file1.Name -and $_.Length -eq $file1.Length }
+    foreach ($destinationFolder in $destinationFolders) {
+        $htmlTable += "<th>$($destinationFolder | Split-Path -Leaf)</th>"
+    }
 
-        $sizeInKB1 = [math]::Ceiling($file1.Length / 1KB)
-        $sizeInKB2 = if ($matchingFile) { [math]::Ceiling($matchingFile.Length / 1KB) } else { "N/A" }
+    $htmlTable += "<th>Result</th></tr>"
 
-        $result = if ($matchingFile) { "Matching" } else { "Not Matching" }
+    $allFiles = Get-ChildItem -Path $sourceFolder -File -Recurse | Sort-Object FullName
 
-        $htmlTable += "<tr><td>$($file1.FullName)</td><td>$sizeInKB1 KB</td><td>$sizeInKB2</td><td>$result</td></tr>"
+    foreach ($file in $allFiles) {
+        $htmlTable += "<tr>"
+        $htmlTable += "<td>$($file.Name)</td>"
+
+        # Display source folder size and last write time
+        $sourceFolderInfo = Get-Item -LiteralPath $sourceFolder
+        $sourceSize = [math]::Ceiling(($sourceFolderInfo | Measure-Object -Property Length -Sum).Sum / 1KB)
+        $sourceLastWriteTime = $sourceFolderInfo.LastWriteTime
+        $htmlTable += "<td>$sourceSize KB<br>$sourceLastWriteTime</td>"
+
+        foreach ($destinationFolder in $destinationFolders) {
+            $destinationFile = Get-ChildItem -Path $destinationFolder -File -Recurse | Where-Object { $_.Name -eq $file.Name }
+
+            if ($destinationFile) {
+                $destinationSize = [math]::Ceiling(($destinationFile | Measure-Object -Property Length -Sum).Sum / 1KB)
+                $destinationLastWriteTime = $destinationFile.LastWriteTime
+
+                # Determine result (Matching or Not Matching)
+                $result = if (($sourceSize -eq $destinationSize) -and ($sourceLastWriteTime -eq $destinationLastWriteTime)) {
+                    "Matching"
+                } else {
+                    "Not Matching"
+                }
+
+                $htmlTable += "<td>$destinationSize KB<br>$destinationLastWriteTime</td>"
+            } else {
+                $htmlTable += "<td>Not Found</td>"
+            }
+        }
+
+        $htmlTable += "<td>$result</td>"
+        $htmlTable += "</tr>"
     }
 
     $htmlTable += "</table>"
     return $htmlTable
 }
 
-# Folder paths
-$folder1 = "C:\Path\To\Folder1"
-$folder2 = "C:\Path\To\Folder2"
+# Configuration
+$sourceFolder = "C:\Path\To\Source\Folder"
+$destinationFolders = @("C:\Path\To\Destination\Folder1", "C:\Path\To\Destination\Folder2")
 
-# Fetch file information from both folders
-$filesFolder1 = Get-ChildItem -Path $folder1 -Recurse
-$filesFolder2 = Get-ChildItem -Path $folder2 -Recurse
-
-# Generate HTML table for file comparison
-$htmlComparisonTable = Generate-ComparisonHTMLTable -filesFolder1 $filesFolder1 -filesFolder2 $filesFolder2
-
-# Generate HTML report
-$htmlReport = @"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>File Comparison Report</title>
-</head>
-<body>
-    $htmlComparisonTable
-</body>
-</html>
-"@
+# Generate HTML report for file comparison
+$htmlComparisonReport = Generate-FileComparisonHTMLTable -sourceFolder $sourceFolder -destinationFolders $destinationFolders
 
 # Save HTML report to a file
-$htmlReport | Out-File -FilePath "C:\Path\To\Your\ComparisonReport.html" -Encoding UTF8
+$htmlComparisonReport | Out-File -FilePath "C:\Path\To\Your\FileComparisonReport.html" -Encoding UTF8
 
 # Display success message
-Write-Host "Comparison report generated successfully at C:\Path\To\Your\ComparisonReport.html"
+Write-Host "File comparison report generated successfully at C:\Path\To\Your\FileComparisonReport.html"
