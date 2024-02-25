@@ -14,14 +14,14 @@ function Generate-FileComparisonHTMLTable {
 
     $htmlTable += "</tr>"
 
-    $sourceFiles = Get-ChildItem -Path $sourceFolder -File
+    $allFiles = Get-ChildItem -Path $sourceFolder -File -Recurse | Sort-Object FullName
 
-    foreach ($sourceFile in $sourceFiles) {
+    foreach ($file in $allFiles) {
         $htmlTable += "<tr>"
-        $htmlTable += "<td>$($sourceFile.Name)</td>"
+        $htmlTable += "<td>$($file.FullName)</td>"
 
         foreach ($destinationFolder in $destinationFolders) {
-            $destinationFile = Get-ChildItem -Path $destinationFolder -File | Where-Object { $_.Name -eq $sourceFile.Name }
+            $destinationFile = Get-ChildItem -Path $destinationFolder -File -Recurse | Where-Object { $_.Name -eq $file.Name }
 
             if ($destinationFile) {
                 $sizeInKB = [math]::Ceiling($destinationFile.Length / 1KB)
