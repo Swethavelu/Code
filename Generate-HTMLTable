@@ -25,7 +25,7 @@ function Generate-FileComparisonHTMLTable {
         $sourceLastWriteTime = $file.LastWriteTime
         $htmlTable += "<td>$sourceSize KB<br>$sourceLastWriteTime</td>"
 
-        $result = "Matching"  # Default to matching
+        $matching = $false
 
         foreach ($destinationFolder in $destinationFolders) {
             $destinationFile = Get-ChildItem -Path $destinationFolder -File -Recurse | Where-Object { $_.Name -eq $file.Name }
@@ -35,14 +35,21 @@ function Generate-FileComparisonHTMLTable {
                 $destinationLastWriteTime = $destinationFile.LastWriteTime
 
                 # Determine result (Matching or Not Matching)
-                if ($sourceSize -ne $destinationSize) {
-                    $result = "Not Matching"
+                if ($sourceSize -eq $destinationSize) {
+                    $matching = $true
                 }
 
                 $htmlTable += "<td>$destinationSize KB<br>$destinationLastWriteTime</td>"
             } else {
                 $htmlTable += "<td>Not Found</td>"
             }
+        }
+
+        # Display result based on file size and presence
+        $result = if ($matching) {
+            "Matching"
+        } else {
+            "Not Matching"
         }
 
         $htmlTable += "<td>$result</td>"
