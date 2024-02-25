@@ -1,3 +1,13 @@
+# Function to calculate the size of a folder and its subfolders
+function Get-FolderSize {
+    param (
+        [string]$folderPath
+    )
+
+    $totalSize = Get-ChildItem -Path $folderPath -File -Recurse | Measure-Object -Property Length -Sum
+    [math]::Ceiling($totalSize.Sum / 1KB)
+}
+
 # Function to generate HTML table for file comparison result
 function Generate-FileComparisonHTMLTable {
     param (
@@ -21,9 +31,8 @@ function Generate-FileComparisonHTMLTable {
         $htmlTable += "<td>$($file.Name)</td>"
 
         # Display source folder size and last write time
-        $sourceFolderInfo = Get-Item -LiteralPath $sourceFolder
-        $sourceSize = [math]::Ceiling(($sourceFolderInfo | Measure-Object -Property Length -Sum).Sum / 1KB)
-        $sourceLastWriteTime = $sourceFolderInfo.LastWriteTime
+        $sourceSize = Get-FolderSize -folderPath $sourceFolder
+        $sourceLastWriteTime = (Get-Item -LiteralPath $sourceFolder).LastWriteTime
         $htmlTable += "<td>$sourceSize KB<br>$sourceLastWriteTime</td>"
 
         foreach ($destinationFolder in $destinationFolders) {
