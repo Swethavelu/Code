@@ -20,10 +20,10 @@ function Generate-FileComparisonHTMLTable {
     )
 
     $htmlTable = "<h2>File Comparison Report</h2>"
-    $htmlTable += "<table border='1'><tr><th>File Name</th><th>Source Folder</th>"
+    $htmlTable += "<table border='1'><tr><th>File Name</th><th>Source Folder Size</th>"
 
     foreach ($destinationFolder in $destinationFolders) {
-        $htmlTable += "<th>$($destinationFolder | Split-Path -Leaf)</th>"
+        $htmlTable += "<th>$($destinationFolder | Split-Path -Leaf) Size</th>"
     }
 
     $htmlTable += "<th>Result</th></tr>"
@@ -35,15 +35,15 @@ function Generate-FileComparisonHTMLTable {
         $htmlTable += "<td>$($file.Name)</td>"
 
         # Display source folder size and last write time
-        $sourceSize = Get-FolderSize -folderPath $sourceFolder
-        $sourceLastWriteTime = (Get-Item -LiteralPath $sourceFolder).LastWriteTime
+        $sourceSize = $_.Length
+        $sourceLastWriteTime = (Get-Item -LiteralPath $file.Directory.FullName).LastWriteTime
         $htmlTable += "<td>$sourceSize KB<br>$sourceLastWriteTime</td>"
 
         foreach ($destinationFolder in $destinationFolders) {
             $destinationFile = Get-ChildItem -Path $destinationFolder -File -Recurse | Where-Object { $_.Name -eq $file.Name }
 
             if ($destinationFile) {
-                $destinationSize = [math]::Ceiling(($destinationFile | Measure-Object -Property Length -Sum).Sum / 1KB)
+                $destinationSize = $destinationFile.Length
                 $destinationLastWriteTime = $destinationFile.LastWriteTime
 
                 # Determine result (Matching or Not Matching)
