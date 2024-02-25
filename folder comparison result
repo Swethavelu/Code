@@ -6,13 +6,13 @@ function Generate-FileComparisonHTMLTable {
     )
 
     $htmlTable = "<h2>File Comparison Report</h2>"
-    $htmlTable += "<table border='1'><tr><th>File Name</th>"
+    $htmlTable += "<table border='1'><tr><th>File Name</th><th>Source Folder</th>"
 
     foreach ($destinationFolder in $destinationFolders) {
         $htmlTable += "<th>$($destinationFolder | Split-Path -Leaf)</th>"
     }
 
-    $htmlTable += "</tr>"
+    $htmlTable += "<th>Result</th></tr>"
 
     $allFiles = Get-ChildItem -Path $sourceFolder -File -Recurse | Sort-Object FullName
 
@@ -20,18 +20,32 @@ function Generate-FileComparisonHTMLTable {
         $htmlTable += "<tr>"
         $htmlTable += "<td>$($file.FullName)</td>"
 
+        # Display source folder size and last write time
+        $sourceSize = [math]::Ceiling((Get-Item -LiteralPath $file.Directory.FullName).Length / 1KB)
+        $sourceLastWriteTime = (Get-Item -LiteralPath $file.Directory.FullName).LastWriteTime
+        $htmlTable += "<td>$sourceSize KB<br>$sourceLastWriteTime</td>"
+
+        $result = "Not Matching"
+
         foreach ($destinationFolder in $destinationFolders) {
             $destinationFile = Get-ChildItem -Path $destinationFolder -File -Recurse | Where-Object { $_.Name -eq $file.Name }
 
             if ($destinationFile) {
                 $sizeInKB = [math]::Ceiling($destinationFile.Length / 1KB)
                 $lastWriteTime = $destinationFile.LastWriteTime
+
+                # Check if file size matches
+                if ($sizeInKB -eq $sourceSize) {
+                    $result = "Matching"
+                }
+
                 $htmlTable += "<td>$sizeInKB KB<br>$lastWriteTime</td>"
             } else {
                 $htmlTable += "<td>Not Found</td>"
             }
         }
 
+        $htmlTable += "<td>$result</td>"
         $htmlTable += "</tr>"
     }
 
