@@ -1,83 +1,67 @@
-# Function to generate HTML table from file information
-function Generate-HTMLTable {
+# Function to generate HTML table for file comparison result
+function Generate-FileComparisonHTMLTable {
     param (
-        [string]$folderName,
-        [array]$fileInfo
+        [string]$sourceFolder,
+        [array]$destinationFolders
     )
 
-    $htmlTable = "<h2>$folderName</h2>"
-    $htmlTable += "<table border='1'><tr><th>File Path</th><th>Size (KB)</th><th>Last Write Time</th></tr>"
+    $htmlTable = "<h2>File Comparison Report</h2>"
+    $htmlTable += "<table border='1'><tr><th>File Name</th><th>Source Folder Size</th>"
 
-    foreach ($file in $fileInfo) {
-        $sizeInKB = [math]::Ceiling($file.Length / 1KB)
-        $htmlTable += "<tr><td>$($file.FullName)</td><td>$sizeInKB KB</td><td>$($file.LastWriteTime)</td></tr>"
+    foreach ($destinationFolder in $destinationFolders) {
+        $htmlTable += "<th>$($destinationFolder | Split-Path -Leaf) Size</th>"
+    }
+
+    $htmlTable += "<th>Result</th></tr>"
+
+    $allFiles = Get-ChildItem -Path $sourceFolder -File -Recurse | Sort-Object FullName
+
+    foreach ($file in $allFiles) {
+        $htmlTable += "<tr>"
+        $htmlTable += "<td>$($file.Name)</td>"
+
+        # Display source file size and last write time
+        $sourceSize = [math]::Ceiling($file.Length / 1KB)
+        $sourceLastWriteTime = $file.LastWriteTime
+        $htmlTable += "<td>$sourceSize KB<br>$sourceLastWriteTime</td>"
+
+        $result = "Matching"  # Default to matching
+
+        foreach ($destinationFolder in $destinationFolders) {
+            $destinationFile = Get-ChildItem -Path $destinationFolder -File -Recurse | Where-Object { $_.Name -eq $file.Name }
+
+            if ($destinationFile) {
+                $destinationSize = [math]::Ceiling($destinationFile.Length / 1KB)
+                $destinationLastWriteTime = $destinationFile.LastWriteTime
+
+                # Determine result (Matching or Not Matching)
+                if ($sourceSize -ne $destinationSize) {
+                    $result = "Not Matching"
+                }
+
+                $htmlTable += "<td>$destinationSize KB<br>$destinationLastWriteTime</td>"
+            } else {
+                $htmlTable += "<td>Not Found</td>"
+            }
+        }
+
+        $htmlTable += "<td>$result</td>"
+        $htmlTable += "</tr>"
     }
 
     $htmlTable += "</table>"
     return $htmlTable
 }
 
-# Function to recursively fetch file information from a folder and calculate total size
-function Get-AllFileInfo {
-    param (
-        [string]$folderPath
-    )
+# Configuration
+$sourceFolder = "C:\Path\To\Source\Folder"
+$destinationFolders = @("C:\Path\To\Destination\Folder1", "C:\Path\To\Destination\Folder2")
 
-    $totalSize = 0
-    $subfolderSizes = @{}
-    $files = Get-ChildItem -Path $folderPath -Recurse
-
-    foreach ($file in $files) {
-        $totalSize += $file.Length
-
-        if ($file.PSIsContainer) {
-            $subfolderSizes[$file.FullName] = (Get-ChildItem -Path $file.FullName -File | Measure-Object -Property Length -Sum).Sum
-        }
-    }
-
-    return $files, $totalSize, $subfolderSizes
-}
-
-# Folder paths
-$folder1 = "C:\Path\To\Folder1"
-$folder2 = "C:\Path\To\Folder2"
-
-# Fetch file information from folders and subfolders
-$filesFolder1, $totalSizeFolder1, $subfolderSizesFolder1 = Get-AllFileInfo -folderPath $folder1
-$filesFolder2, $totalSizeFolder2, $subfolderSizesFolder2 = Get-AllFileInfo -folderPath $folder2
-
-# Generate HTML tables for files and subfolders
-$htmlTableFolder1 = Generate-HTMLTable -folderName "Folder 1 Files" -fileInfo $filesFolder1
-$htmlTableSubfoldersFolder1 = foreach ($subfolder in $subfolderSizesFolder1.Keys) {
-    $sizeInKB = [math]::Ceiling($subfolderSizesFolder1[$subfolder] / 1KB)
-    "<p>Subfolder: $subfolder, Size: $sizeInKB KB</p>"
-}
-$htmlTableFolder2 = Generate-HTMLTable -folderName "Folder 2 Files" -fileInfo $filesFolder2
-$htmlTableSubfoldersFolder2 = foreach ($subfolder in $subfolderSizesFolder2.Keys) {
-    $sizeInKB = [math]::Ceiling($subfolderSizesFolder2[$subfolder] / 1KB)
-    "<p>Subfolder: $subfolder, Size: $sizeInKB KB</p>"
-}
-
-# Generate HTML report
-$htmlReport = @"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>File Information Report</title>
-</head>
-<body>
-    $htmlTableFolder1
-    <p>Total Size for Folder 1: $($totalSizeFolder1 / 1KB) KB</p>
-    $htmlTableSubfoldersFolder1
-    $htmlTableFolder2
-    <p>Total Size for Folder 2: $($totalSizeFolder2 / 1KB) KB</p>
-    $htmlTableSubfoldersFolder2
-</body>
-</html>
-"@
+# Generate HTML report for file comparison
+$htmlComparisonReport = Generate-FileComparisonHTMLTable -sourceFolder $sourceFolder -destinationFolders $destinationFolders
 
 # Save HTML report to a file
-$htmlReport | Out-File -FilePath "C:\Path\To\Your\Report.html" -Encoding UTF8
+$htmlComparisonReport | Out-File -FilePath "C:\Path\To\Your\FileComparisonReport.html" -Encoding UTF8
 
 # Display success message
-Write-Host "HTML report generated successfully at C:\Path\To\Your\Report.html"
+Write-Host "File comparison report generated successfully at C:\Path\To\Your\FileComparisonReport.html"
