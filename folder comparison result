@@ -21,17 +21,16 @@ function Generate-FileComparisonHTMLTable {
         $htmlTable += "<td>$($file.Name)</td>"
 
         # Display source folder size and last write time
-        $sourceSize = [math]::Ceiling((Get-Item -LiteralPath $sourceFolder).Length / 1KB)
-        $sourceLastWriteTime = (Get-Item -LiteralPath $sourceFolder).LastWriteTime
+        $sourceFolderInfo = Get-Item -LiteralPath $sourceFolder
+        $sourceSize = [math]::Ceiling(($sourceFolderInfo | Measure-Object -Property Length -Sum).Sum / 1KB)
+        $sourceLastWriteTime = $sourceFolderInfo.LastWriteTime
         $htmlTable += "<td>$sourceSize KB<br>$sourceLastWriteTime</td>"
-
-								
 
         foreach ($destinationFolder in $destinationFolders) {
             $destinationFile = Get-ChildItem -Path $destinationFolder -File -Recurse | Where-Object { $_.Name -eq $file.Name }
 
             if ($destinationFile) {
-                $destinationSize = [math]::Ceiling($destinationFile.Length / 1KB)
+                $destinationSize = [math]::Ceiling(($destinationFile | Measure-Object -Property Length -Sum).Sum / 1KB)
                 $destinationLastWriteTime = $destinationFile.LastWriteTime
 
                 # Determine result (Matching or Not Matching)
