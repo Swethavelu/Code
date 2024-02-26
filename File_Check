@@ -35,3 +35,44 @@ class Program
         }
     }
 }
+
+//along with sub folders check
+using System;
+using System.IO;
+
+class Program
+{
+    static void Main()
+    {
+        // Specify the shared path and file name
+        string sharedPath = @"\\server\shared_folder";
+        string fileName = "example.txt";
+        
+        // Search for the file in the specified path and its subdirectories
+        string[] files = Directory.GetFiles(sharedPath, fileName, SearchOption.AllDirectories);
+
+        if (files.Length > 0)
+        {
+            Console.WriteLine($"File '{fileName}' exists in the shared path or its subdirectories.");
+
+            foreach (var filePath in files)
+            {
+                // Get file size
+                long fileSize = new FileInfo(filePath).Length;
+
+                if (fileSize > 0)
+                {
+                    Console.WriteLine($"File '{filePath}' has data. File Size: {fileSize} bytes");
+                }
+                else
+                {
+                    Console.WriteLine($"File '{filePath}' is empty.");
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine($"File '{fileName}' does not exist in the shared path or its subdirectories.");
+        }
+    }
+}
