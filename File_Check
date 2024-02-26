@@ -118,3 +118,46 @@ class Program
         }
     }
 }
+//In KB size
+using System;
+using System.IO;
+
+class Program
+{
+    static void Main()
+    {
+        // Specify the shared path and the file name to check
+        string sharedPath = @"\\server\shared_folder";
+        string fileName = "example.txt";
+
+        // Search for the file in the specified path and its subdirectories
+        string[] files = Directory.GetFiles(sharedPath, fileName, SearchOption.AllDirectories);
+
+        if (files.Length > 0)
+        {
+            Console.WriteLine($"File '{fileName}' exists in the shared path or its subdirectories.");
+
+            foreach (var filePath in files)
+            {
+                // Get file size in bytes
+                long fileSizeBytes = new FileInfo(filePath).Length;
+
+                // Convert bytes to kilobytes
+                double fileSizeKB = fileSizeBytes / 1024.0;
+
+                if (fileSizeKB > 0)
+                {
+                    Console.WriteLine($"File '{filePath}' has data. File Size: {fileSizeKB:F2} KB");
+                }
+                else
+                {
+                    Console.WriteLine($"File '{filePath}' is empty.");
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine($"File '{fileName}' does not exist in the shared path or its subdirectories.");
+        }
+    }
+}
