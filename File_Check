@@ -1,0 +1,37 @@
+using System;
+using System.IO;
+
+class Program
+{
+    static void Main()
+    {
+        // Specify the shared path and file name
+        string sharedPath = @"\\server\shared_folder";
+        string fileName = "example.txt";
+        
+        // Combine the path and file name
+        string filePath = Path.Combine(sharedPath, fileName);
+
+        // Check if the file exists
+        if (File.Exists(filePath))
+        {
+            Console.WriteLine($"File '{fileName}' exists in the shared path.");
+
+            // Get file size
+            long fileSize = new FileInfo(filePath).Length;
+
+            if (fileSize > 0)
+            {
+                Console.WriteLine($"File has data. File Size: {fileSize} bytes");
+            }
+            else
+            {
+                Console.WriteLine("File is empty.");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"File '{fileName}' does not exist in the shared path.");
+        }
+    }
+}
