@@ -76,3 +76,45 @@ class Program
         }
     }
 }
+//For all file types
+using System;
+using System.IO;
+
+class Program
+{
+    static void Main()
+    {
+        // Specify the shared path and allowed file extensions
+        string sharedPath = @"\\server\shared_folder";
+        string[] allowedExtensions = { ".txt", ".csv", ".xlsx", ".dat" };
+
+        // Search for files with allowed extensions in the specified path and its subdirectories
+        string[] files = Directory.GetFiles(sharedPath, "*.*", SearchOption.AllDirectories)
+                                     .Where(file => allowedExtensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
+                                     .ToArray();
+
+        if (files.Length > 0)
+        {
+            Console.WriteLine($"Files with allowed extensions exist in the shared path or its subdirectories.");
+
+            foreach (var filePath in files)
+            {
+                // Get file size
+                long fileSize = new FileInfo(filePath).Length;
+
+                if (fileSize > 0)
+                {
+                    Console.WriteLine($"File '{filePath}' has data. File Size: {fileSize} bytes");
+                }
+                else
+                {
+                    Console.WriteLine($"File '{filePath}' is empty.");
+                }
+            }
+        }
+        else
+        {
+            Console.WriteLine($"No files with allowed extensions exist in the shared path or its subdirectories.");
+        }
+    }
+}
