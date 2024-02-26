@@ -1,0 +1,80 @@
+# Function to generate HTML table for file comparison result
+function Generate-FileComparisonHTMLTable {
+    param (
+        [string]$sourceFolder,
+        [array]$destinationFolders
+    )
+
+    # Get the current system date and time for the output file name
+    $currentDateTime = Get-Date -Format "yyyyMMdd_HHmmss"
+    $outputFileName = "FileComparisonReport_$currentDateTime.html"
+
+    $htmlTable = "<h2>File Comparison Report</h2>"
+    $htmlTable += "<table border='1'><tr><th>File Name</th><th>Source Folder Size</th>"
+
+    foreach ($destinationFolder in $destinationFolders) {
+        $htmlTable += "<th>$($destinationFolder | Split-Path -Leaf) Size</th>"
+    }
+
+    $htmlTable += "<th>Result</th></tr>"
+
+    $allFiles = Get-ChildItem -Path $sourceFolder -File -Recurse | Sort-Object FullName
+
+    foreach ($file in $allFiles) {
+        $htmlTable += "<tr>"
+        $htmlTable += "<td>$($file.Name)</td>"
+
+        # Display source file size and last write time
+        $sourceSize = [math]::Ceiling($file.Length / 1KB)
+        $sourceLastWriteTime = $file.LastWriteTime
+        $htmlTable += "<td>$sourceSize KB<br>$sourceLastWriteTime</td>"
+
+        $matching = $false
+
+        foreach ($destinationFolder in $destinationFolders) {
+            $destinationFile = Get-ChildItem -Path $destinationFolder -File -Recurse | Where-Object { $_.Name -eq $file.Name }
+
+            if ($destinationFile) {
+                $destinationSize = [math]::Ceiling($destinationFile.Length / 1KB)
+                $destinationLastWriteTime = $destinationFile.LastWriteTime
+
+                # Determine result (Matching or Not Matching)
+                if ($sourceSize -eq $destinationSize) {
+                    $matching = $true
+                }
+
+                $htmlTable += "<td>$destinationSize KB<br>$destinationLastWriteTime</td>"
+            } else {
+                $htmlTable += "<td>Not Found</td>"
+            }
+        }
+
+        # Display result based on file size and presence
+        $result = if ($matching) {
+            "Matching"
+        } else {
+            "Not Matching"
+        }
+
+        $htmlTable += "<td>$result</td>"
+        $htmlTable += "</tr>"
+    }
+
+    $htmlTable += "</table>"
+
+    # Save HTML report to a file with the current system date and time in the name
+    $outputFilePath = Join-Path -Path $PSScriptRoot -ChildPath $outputFileName
+    $htmlTable | Out-File -FilePath $outputFilePath -Encoding UTF8
+
+    return $outputFilePath
+}
+
+# Configuration
+$sourceFolder = "C:\Path\To\Source\Folder"
+$destinationFolders = @("C:\Path\To\Destination\Folder1", "C:\Path\To\Destination\Folder2")
+
+# Generate HTML report for file comparison and get the output file name
+$outputFilePath = Generate-FileComparisonHTMLTable -sourceFolder $sourceFolder -destinationFolders $destinationFolders
+
+# Display success message
+Write-Host "File comparison report generated successfully at: $outputFilePath"
