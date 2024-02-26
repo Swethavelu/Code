@@ -1,0 +1,81 @@
+# Function to get the size of a folder including subfolders
+function Get-FolderSize {
+    param (
+        [string]$folderPath
+    )
+
+    $size = 0
+    Get-ChildItem -File -Recurse -LiteralPath $folderPath | ForEach-Object {
+        $size += $_.Length
+    }
+
+    return [math]::Ceiling($size / 1KB)
+}
+
+# Function to generate HTML table for file comparison result
+function Generate-FileComparisonHTMLTable {
+    param (
+        [string]$sourceFolder,
+        [array]$destinationFolders
+    )
+
+    $htmlTable = "<h2>File Comparison Report</h2>"
+    $htmlTable += "<table border='1'><tr><th>File Name</th><th>Source Folder</th>"
+
+    foreach ($destinationFolder in $destinationFolders) {
+        $htmlTable += "<th>$($destinationFolder | Split-Path -Leaf)</th>"
+    }
+
+    $htmlTable += "<th>Result</th></tr>"
+
+    $allFiles = Get-ChildItem -Path $sourceFolder -File -Recurse | Sort-Object FullName
+
+    foreach ($file in $allFiles) {
+        $htmlTable += "<tr>"
+        $htmlTable += "<td>$($file.Name)</td>"
+
+        # Display source folder size and last write time
+        $sourceSize = Get-FolderSize -folderPath $sourceFolder
+        $sourceLastWriteTime = (Get-Item -LiteralPath $file.Directory.FullName).LastWriteTime
+        $htmlTable += "<td>$sourceSize KB<br>$sourceLastWriteTime</td>"
+
+        foreach ($destinationFolder in $destinationFolders) {
+            $destinationFile = Get-ChildItem -Path $destinationFolder -File -Recurse | Where-Object { $_.Name -eq $file.Name }
+
+            if ($destinationFile) {
+                $destinationSize = Get-FolderSize -folderPath $destinationFolder
+                $destinationLastWriteTime = $destinationFile.LastWriteTime
+
+                # Determine result (Matching or Not Matching)
+                $result = if (($sourceSize -eq $destinationSize) -and ($sourceLastWriteTime -eq $destinationLastWriteTime)) {
+                    "Matching"
+                } else {
+                    "Not Matching"
+                }
+
+                $htmlTable += "<td>$destinationSize KB<br>$destinationLastWriteTime</td>"
+            } else {
+                $htmlTable += "<td>Not Found</td>"
+            }
+        }
+
+        $htmlTable += "<td>$result</td>"
+        $htmlTable += "</tr>"
+    }
+
+    $htmlTable += "</table>"
+    return $htmlTable
+}
+
+# Configuration
+$sourceFolder = "C:\Path\To\Source\Folder"
+$destinationFolders = @("C:\Path\To\Destination\Folder1", "C:\Path\To\Destination\Folder2")
+
+# Generate HTML report for file comparison
+$htmlComparisonReport = Generate-FileComparisonHTMLTable -sourceFolder $sourceFolder -destinationFolders $destinationFolders
+
+# Save HTML report to a file
+$htmlComparisonReport | Out-File -FilePath "C:\Path\To\Your\FileComparisonReport.html" -Encoding UTF8
+
+# Display success message
+Write-Host "File comparison report generated successfully at C:\Path\To\Your\FileComparisonReport.html"
