@@ -1,0 +1,52 @@
+using System;
+using System.IO;
+using OfficeOpenXml;
+
+class Program
+{
+    static void Main()
+    {
+        // Specify the path to the Excel file containing folder paths and file names
+        string excelFilePath = @"C:\Path\To\Your\Excel\File.xlsx";
+
+        // Load Excel package
+        using (var package = new ExcelPackage(new FileInfo(excelFilePath)))
+        {
+            // Assume the folder path and file names are in the first worksheet, in columns A and B
+            ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
+
+            // Iterate through the rows in the Excel sheet
+            for (int row = 2; row <= worksheet.Dimension.Rows; row++) // Assuming the header is in the first row
+            {
+                string folderPath = worksheet.Cells[row, 1].Text;
+                string fileName = worksheet.Cells[row, 2].Text;
+
+                // Combine the path and file name
+                string filePath = Path.Combine(folderPath, fileName);
+
+                // Check if the file exists
+                if (File.Exists(filePath))
+                {
+                    // Get file size in bytes
+                    long fileSizeBytes = new FileInfo(filePath).Length;
+
+                    // Convert bytes to kilobytes and round to the nearest whole number
+                    int fileSizeKB = (int)Math.Round(fileSizeBytes / 1024.0);
+
+                    if (fileSizeKB > 0)
+                    {
+                        Console.WriteLine($"File '{filePath}' has data. File Size: {fileSizeKB} KB");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"File '{filePath}' is empty.");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"File '{fileName}' does not exist in the specified path '{folderPath}'.");
+                }
+            }
+        }
+    }
+}
