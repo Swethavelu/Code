@@ -266,6 +266,115 @@ foreach ($pair in $folderPairs) {
     # Generate HTML report for file comparison and get the output file name
     $outputFilePath = Generate-FileComparisonHTMLTable -sourceFolder $pair.Source -destinationFolders $pair.Destinations
 
+#################################version 4
+# Function to generate HTML table for file comparison result
+function Generate-FileComparisonHTMLTable {
+    param (
+        [string]$sourceFolder,
+        [array]$destinationFolders,
+        [string]$outputDirectory
+    )
+
+    # Get the current system date and time for the output file name
+    $currentDateTime = Get-Date -Format "yyyyMMdd_HHmmss"
+    $outputFileName = "FileComparisonReport_$currentDateTime.html"
+
+    # Check if $outputDirectory is not empty
+    if (-not [string]::IsNullOrEmpty($outputDirectory)) {
+        # Construct the full output file path
+        $outputFilePath = Join-Path -Path $outputDirectory -ChildPath $outputFileName
+
+        $htmlTable = "<h2>File Comparison Report</h2>"
+
+        # Source and Destination Folders
+        $htmlTable += "<p><b>Source Folder:</b> $sourceFolder</p>"
+        $htmlTable += "<p><b>Destination Folders:</b></p><ul>"
+        foreach ($destinationFolder in $destinationFolders) {
+            $htmlTable += "<li>$destinationFolder</li>"
+        }
+        $htmlTable += "</ul>"
+
+        # Result Table
+        $htmlTable += "<table border='1'><tr><th>File Name</th><th>Source Folder Size</th>"
+
+        foreach ($destinationFolder in $destinationFolders) {
+            $htmlTable += "<th>$($destinationFolder | Split-Path -Leaf) Size</th>"
+        }
+
+        $htmlTable += "<th>Result</th></tr>"
+
+        $allFiles = Get-ChildItem -Path $sourceFolder -File -Recurse | Sort-Object FullName
+
+        foreach ($file in $allFiles) {
+            $htmlTable += "<tr>"
+            $htmlTable += "<td>$($file.Name)</td>"
+
+            # Display source file size and last write time
+            $sourceSize = [math]::Ceiling($file.Length / 1KB)
+            $sourceLastWriteTime = $file.LastWriteTime
+            $htmlTable += "<td>$sourceSize KB<br>$sourceLastWriteTime</td>"
+
+            $matching = $false
+
+            foreach ($destinationFolder in $destinationFolders) {
+                $destinationFile = Get-ChildItem -Path $destinationFolder -File -Recurse | Where-Object { $_.Name -eq $file.Name }
+
+                if ($destinationFile) {
+                    $destinationSize = [math]::Ceiling($destinationFile.Length / 1KB)
+                    $destinationLastWriteTime = $destinationFile.LastWriteTime
+
+                    # Determine result (Matching or Not Matching)
+                    if ($sourceSize -eq $destinationSize) {
+                        $matching = $true
+                    }
+
+                    $htmlTable += "<td>$destinationSize KB<br>$destinationLastWriteTime</td>"
+                } else {
+                    $htmlTable += "<td>Not Found</td>"
+                }
+            }
+
+            # Display result based on file size and presence
+            $result = if ($matching) {
+                "Matching"
+            } else {
+                "Not Matching"
+            }
+
+            $htmlTable += "<td>$result</td>"
+            $htmlTable += "</tr>"
+        }
+
+        $htmlTable += "</table>"
+
+        # Save HTML report to the specified output directory
+        $htmlTable | Out-File -FilePath $outputFilePath -Encoding UTF8
+
+        return $outputFilePath
+    } else {
+        Write-Host "Output directory is empty. Cannot generate HTML report."
+        return $null
+    }
+}
+
+# Loop through multiple source and destination folder pairs
+$folderPairs = @(
+    @{ Source = "C:\Path\To\Source\Folder1"; Destinations = @("C:\Path\To\Destination\Folder1", "C:\Path\To\Destination\Folder2"); OutputDirectory = "C:\Output\Reports" },
+    @{ Source = "C:\Path\To\Source\Folder2"; Destinations = @("C:\Path\To\Destination\Folder3", "C:\Path\To\Destination\Folder4"); OutputDirectory = "D:\Output\Reports" }
+    # Add more pairs as needed
+)
+
+foreach ($pair in $folderPairs) {
+    # Generate HTML report for file comparison and get the output file name
+    $outputFilePath = Generate-FileComparisonHTMLTable -sourceFolder $pair.Source -destinationFolders $pair.Destinations -outputDirectory $pair.OutputDirectory
+
+    # Display success message for each iteration
+    if ($outputFilePath) {
+        Write-Host "File comparison report generated successfully at: $outputFilePath"
+    }
+}
+
+
     # Display success message for each iteration
     Write-Host "File comparison report generated successfully at: $outputFilePath"
 }
