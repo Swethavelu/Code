@@ -266,7 +266,12 @@ foreach ($pair in $folderPairs) {
     # Generate HTML report for file comparison and get the output file name
     $outputFilePath = Generate-FileComparisonHTMLTable -sourceFolder $pair.Source -destinationFolders $pair.Destinations
 
-#################################version 4
+    # Display success message for each iteration
+    Write-Host "File comparison report generated successfully at: $outputFilePath"
+}
+
+}
+#############################version4
 # Function to generate HTML table for file comparison result
 function Generate-FileComparisonHTMLTable {
     param (
@@ -359,8 +364,8 @@ function Generate-FileComparisonHTMLTable {
 
 # Loop through multiple source and destination folder pairs
 $folderPairs = @(
-    @{ Source = "C:\Path\To\Source\Folder1"; Destinations = @("C:\Path\To\Destination\Folder1", "C:\Path\To\Destination\Folder2"); OutputDirectory = "C:\Output\Reports" },
-    @{ Source = "C:\Path\To\Source\Folder2"; Destinations = @("C:\Path\To\Destination\Folder3", "C:\Path\To\Destination\Folder4"); OutputDirectory = "D:\Output\Reports" }
+    @{ Source = "C:\Path\To\Source\Folder1"; Destinations = @("C:\Path\To\Destination\Folder1", "C:\Path\To\Destination\Folder2"); OutputDirectory = "C:\Output\Reports\Folder1" },
+    @{ Source = "C:\Path\To\Source\Folder2"; Destinations = @("C:\Path\To\Destination\Folder3", "C:\Path\To\Destination\Folder4"); OutputDirectory = "D:\Output\Reports\Folder2" }
     # Add more pairs as needed
 )
 
@@ -372,10 +377,5 @@ foreach ($pair in $folderPairs) {
     if ($outputFilePath) {
         Write-Host "File comparison report generated successfully at: $outputFilePath"
     }
-}
-
-
-    # Display success message for each iteration
-    Write-Host "File comparison report generated successfully at: $outputFilePath"
 }
 
