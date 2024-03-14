@@ -626,7 +626,7 @@ function Generate-FileComparisonHTMLTable {
         $htmlTable += "<p><b>Destination Folders:</b></p><ul>"
         $destIndex = 1
         foreach ($destinationFolder in $destinationFolders) {
-            $htmlTable += "<li>Destination $destIndex: $destinationFolder</li>"
+            $htmlTable += "<li>Destination ${destIndex}: $destinationFolder</li>"
             $destIndex++
         }
         $htmlTable += "</ul>"
@@ -710,3 +710,4 @@ foreach ($pair in $folderPairs) {
         Write-Host "File comparison report generated successfully at: $outputFilePath"
     }
 }
+
