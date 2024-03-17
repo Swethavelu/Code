@@ -142,7 +142,9 @@ class Program
         {
             // Open the Excel workbook
             Excel.Workbook workbook = excelApp.Workbooks.Open(excelFilePath);
-            Excel.Worksheet worksheet = workbook.Sheets[1]; // Assuming the data is in the first sheet
+
+            // Get the first worksheet
+            Excel.Worksheet worksheet = (Excel.Worksheet)workbook.Sheets[1];
 
             // Get the used range of cells
             Excel.Range usedRange = worksheet.UsedRange;
