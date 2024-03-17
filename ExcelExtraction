@@ -185,3 +185,81 @@ class Program
     }
 }
 
+//version 4
+using System;
+using System.IO;
+using Excel = Microsoft.Office.Interop.Excel;
+
+class Program
+{
+    static void Main()
+    {
+        // Specify the path to the Excel file containing folder paths and file names
+        string excelFilePath = @"C:\Path\To\Your\Excel\File.xlsx";
+
+        // Create an Excel application object
+        Excel.Application excelApp = new Excel.Application();
+
+        try
+        {
+            // Open the Excel workbook
+            Excel.Workbook workbook = excelApp.Workbooks.Open(excelFilePath);
+
+            // Get the first worksheet
+            Excel.Worksheet worksheet = (Excel.Worksheet)workbook.Sheets[1];
+
+            // Get the used range of cells
+            Excel.Range usedRange = worksheet.UsedRange;
+
+            // Get the number of rows in the worksheet
+            int rowCount = usedRange.Rows.Count;
+
+            // Iterate through the rows
+            for (int row = 2; row <= rowCount; row++) // Assuming the header is in the first row
+            {
+                // Get folder path and file name from Excel cells
+                string folderPath = Convert.ToString((worksheet.Cells[row, 1] as Excel.Range)?.Value);
+                string fileName = Convert.ToString((worksheet.Cells[row, 2] as Excel.Range)?.Value);
+
+                // Combine the path and file name
+                string filePath = Path.Combine(folderPath, fileName);
+
+                // Check if the file exists
+                if (File.Exists(filePath))
+                {
+                    // Get file size in bytes
+                    long fileSizeBytes = new FileInfo(filePath).Length;
+
+                    // Convert bytes to kilobytes and round to the nearest whole number
+                    int fileSizeKB = (int)Math.Round(fileSizeBytes / 1024.0);
+
+                    if (fileSizeKB > 0)
+                    {
+                        Console.WriteLine($"File '{filePath}' has data. File Size: {fileSizeKB} KB");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"File '{filePath}' is empty.");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"File '{fileName}' does not exist in the specified path '{folderPath}'.");
+                }
+            }
+
+            // Close the workbook and release resources
+            workbook.Close(false);
+            excelApp.Quit();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            // Release COM objects
+            System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp);
+        }
+    }
+}
