@@ -950,7 +950,7 @@ foreach ($pair in $folderPairs) {
 }
 
 #####version 10
-  # Function to generate HTML table for file comparison result
+# Function to generate HTML table for file comparison result
 function Generate-FileComparisonHTMLTable {
     param (
         [string]$sourceFolder,
@@ -1010,7 +1010,10 @@ function Generate-FileComparisonHTMLTable {
             $sourceSize = [math]::Ceiling($file.Length / 1KB)
             $sourceLastWriteTime = $file.LastWriteTime
             $htmlTable += "<td>$($file.Name)</td>"
-            $htmlTable += "<td>$sourceSize KB<br>$sourceLastWriteTime</td>"
+
+            # Set CSS style to highlight filename in red if result is "Not Matching"
+            $fileNameStyle = if ($matching -eq $false) { "style='color: red;'" } else { "" }
+            $htmlTable += "<td $fileNameStyle>$sourceSize KB<br>$sourceLastWriteTime</td>"
 
             $matching = $true
 
@@ -1030,7 +1033,9 @@ function Generate-FileComparisonHTMLTable {
                         $matching = $false
                     }
 
-                    $htmlTable += "<td>$destinationSize KB<br>$destinationLastWriteTime</td>"
+                    # Set CSS style to highlight destination size in red if result is "Not Matching"
+                    $destinationSizeStyle = if ($matching -eq $false) { "style='color: red;'" } else { "" }
+                    $htmlTable += "<td $destinationSizeStyle>$destinationSize KB<br>$destinationLastWriteTime</td>"
                 } else {
                     Write-Host "File $($file.Name) not found in Destination Folder: $destinationFolder"
                     $matching = $false
@@ -1045,10 +1050,10 @@ function Generate-FileComparisonHTMLTable {
                 "Not Matching"
             }
 
-            # Set CSS style to highlight the entire row in red if result is "Not Matching"
-            $rowStyle = if ($result -eq "Not Matching") { "style='color: red;'" } else { "" }
+            # Set CSS style to highlight result in red if result is "Not Matching"
+            $resultStyle = if ($result -eq "Not Matching") { "style='color: red;'" } else { "" }
 
-            $htmlTable += "<td $rowStyle>$result</td>"
+            $htmlTable += "<td $resultStyle>$result</td>"
             $htmlTable += "</tr>"
         }
 
@@ -1076,5 +1081,3 @@ foreach ($pair in $folderPairs) {
     # Generate HTML report for file comparison and get the output file name
     $outputFilePath = Generate-FileComparisonHTMLTable -sourceFolder $pair.Source -destinationFolders $pair.Destinations -outputDirectory $pair.OutputDirectory
 }
-
-            
