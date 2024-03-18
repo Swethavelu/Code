@@ -950,7 +950,7 @@ foreach ($pair in $folderPairs) {
 }
 
 #####version 10
-# Function to generate HTML table for file comparison result
+  # Function to generate HTML table for file comparison result
 function Generate-FileComparisonHTMLTable {
     param (
         [string]$sourceFolder,
@@ -1045,8 +1045,10 @@ function Generate-FileComparisonHTMLTable {
                 "Not Matching"
             }
 
-            # Highlight the row in red if the result is "Not Matching"
-            $htmlTable += "<td style='color: " + if ($result -eq "Not Matching") { "red" } else { "black" } + ";'>$result</td>"
+            # Set CSS style to highlight row in red if result is "Not Matching"
+            $rowStyle = if ($result -eq "Not Matching") { "style='color: red;'" } else { "" }
+
+            $htmlTable += "<td $rowStyle>$result</td>"
             $htmlTable += "</tr>"
         }
 
@@ -1074,3 +1076,4 @@ foreach ($pair in $folderPairs) {
     # Generate HTML report for file comparison and get the output file name
     $outputFilePath = Generate-FileComparisonHTMLTable -sourceFolder $pair.Source -destinationFolders $pair.Destinations -outputDirectory $pair.OutputDirectory
 }
+          
