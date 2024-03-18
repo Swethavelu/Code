@@ -1005,11 +1005,11 @@ function Generate-FileComparisonHTMLTable {
 
         foreach ($file in $allFiles) {
             $htmlTable += "<tr>"
-            $htmlTable += "<td>$($file.Name)</td>"
 
             # Display source file size and last write time
             $sourceSize = [math]::Ceiling($file.Length / 1KB)
             $sourceLastWriteTime = $file.LastWriteTime
+            $htmlTable += "<td>$($file.Name)</td>"
             $htmlTable += "<td>$sourceSize KB<br>$sourceLastWriteTime</td>"
 
             $matching = $true
@@ -1045,7 +1045,7 @@ function Generate-FileComparisonHTMLTable {
                 "Not Matching"
             }
 
-            # Set CSS style to highlight row in red if result is "Not Matching"
+            # Set CSS style to highlight the entire row in red if result is "Not Matching"
             $rowStyle = if ($result -eq "Not Matching") { "style='color: red;'" } else { "" }
 
             $htmlTable += "<td $rowStyle>$result</td>"
@@ -1076,4 +1076,5 @@ foreach ($pair in $folderPairs) {
     # Generate HTML report for file comparison and get the output file name
     $outputFilePath = Generate-FileComparisonHTMLTable -sourceFolder $pair.Source -destinationFolders $pair.Destinations -outputDirectory $pair.OutputDirectory
 }
-          
+
+            
