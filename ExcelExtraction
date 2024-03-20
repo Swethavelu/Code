@@ -1,343 +1,56 @@
+// version 1 -To check the file existence and file size from data table
 using System;
+using System.Data;
 using System.IO;
-using OfficeOpenXml;
 
 class Program
 {
     static void Main()
     {
-        // Specify the path to the Excel file containing folder paths and file names
-        string excelFilePath = @"C:\Path\To\Your\Excel\File.xlsx";
+        // Sample data table
+        DataTable dataTable = GetSampleDataTable();
 
-        // Load Excel package
-        using (var package = new ExcelPackage(new FileInfo(excelFilePath)))
+        // Iterate through each row in the data table
+        foreach (DataRow row in dataTable.Rows)
         {
-            // Assume the folder path and file names are in the first worksheet, in columns A and B
-            ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
+            string folderPath = row["Folder path"].ToString();
+            string outputFileName = row["Output File Name"].ToString();
 
-            // Iterate through the rows in the Excel sheet
-            for (int row = 2; row <= worksheet.Dimension.Rows; row++) // Assuming the header is in the first row
+            // Check if the output file exists
+            string outputFileFullPath = Path.Combine(folderPath, outputFileName);
+            bool fileExists = File.Exists(outputFileFullPath);
+
+            // Display the result
+            Console.WriteLine($"ID: {row["ID"]}, Description: {row["Description"]}, Jobname: {row["Jobname"]}, Folder path: {folderPath}, Output File Name: {outputFileName}, File Exists: {(fileExists ? "Yes" : "No")}");
+
+            // Display file size if file exists
+            if (fileExists)
             {
-                string folderPath = worksheet.Cells[row, 1].Text;
-                string fileName = worksheet.Cells[row, 2].Text;
-
-                // Combine the path and file name
-                string filePath = Path.Combine(folderPath, fileName);
-
-                // Check if the file exists
-                if (File.Exists(filePath))
-                {
-                    // Get file size in bytes
-                    long fileSizeBytes = new FileInfo(filePath).Length;
-
-                    // Convert bytes to kilobytes and round to the nearest whole number
-                    int fileSizeKB = (int)Math.Round(fileSizeBytes / 1024.0);
-
-                    if (fileSizeKB > 0)
-                    {
-                        Console.WriteLine($"File '{filePath}' has data. File Size: {fileSizeKB} KB");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"File '{filePath}' is empty.");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"File '{fileName}' does not exist in the specified path '{folderPath}'.");
-                }
+                FileInfo fileInfo = new FileInfo(outputFileFullPath);
+                Console.WriteLine($"File Size: {fileInfo.Length} bytes");
             }
+
+            Console.WriteLine();
         }
     }
-}
 
-//version 2
-using System;
-using System.Data.OleDb;
-using System.IO;
-
-class Program
-{
-    static void Main()
+    // Method to create sample data table
+    static DataTable GetSampleDataTable()
     {
-        // Specify the path to the Excel file containing folder paths and file names
-        string excelFilePath = @"C:\Path\To\Your\Excel\File.xlsx";
+        DataTable dataTable = new DataTable();
+        dataTable.Columns.Add("ID", typeof(int));
+        dataTable.Columns.Add("Description", typeof(string));
+        dataTable.Columns.Add("Jobname", typeof(string));
+        dataTable.Columns.Add("Folder path", typeof(string));
+        dataTable.Columns.Add("Output File Name", typeof(string));
+        dataTable.Columns.Add("SQL", typeof(string));
+        dataTable.Columns.Add("Oracle", typeof(string));
 
-        // Connection string for Excel (assuming Excel 2007 and later format)
-        string connectionString = $"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={excelFilePath};Extended Properties='Excel 12.0 Xml;HDR=YES';";
+        // Sample data
+        dataTable.Rows.Add(1, "Description 1", "Job 1", @"C:\SampleFolder1", "OutputFile1.txt", "SQL1", "Oracle1");
+        dataTable.Rows.Add(2, "Description 2", "Job 2", @"C:\SampleFolder2", "OutputFile2.txt", "SQL2", "Oracle2");
+        dataTable.Rows.Add(3, "Description 3", "Job 3", @"C:\SampleFolder3", "OutputFile3.txt", "SQL3", "Oracle3");
 
-        // Query to select data from the Excel sheet
-        string query = "SELECT * FROM [Sheet1$]";
-
-        // Create the OleDbConnection and OleDbCommand objects
-        using (OleDbConnection connection = new OleDbConnection(connectionString))
-        using (OleDbCommand command = new OleDbCommand(query, connection))
-        {
-            try
-            {
-                // Open the connection
-                connection.Open();
-
-                // Execute the query
-                using (OleDbDataReader reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        // Assuming the folder path is in the first column and file name is in the second column
-                        string folderPath = reader[0].ToString();
-                        string fileName = reader[1].ToString();
-
-                        // Combine the path and file name
-                        string filePath = Path.Combine(folderPath, fileName);
-
-                        // Check if the file exists
-                        if (File.Exists(filePath))
-                        {
-                            // Get file size in bytes
-                            long fileSizeBytes = new FileInfo(filePath).Length;
-
-                            // Convert bytes to kilobytes and round to the nearest whole number
-                            int fileSizeKB = (int)Math.Round(fileSizeBytes / 1024.0);
-
-                            if (fileSizeKB > 0)
-                            {
-                                Console.WriteLine($"File '{filePath}' has data. File Size: {fileSizeKB} KB");
-                            }
-                            else
-                            {
-                                Console.WriteLine($"File '{filePath}' is empty.");
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine($"File '{fileName}' does not exist in the specified path '{folderPath}'.");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
-            }
-        }
-    }
-}
-
-//version3
-using System;
-using System.IO;
-using ClosedXML.Excel;
-
-class Program
-{
-    static void Main()
-    {
-        // Specify the path to the Excel file containing folder paths and file names
-        string excelFilePath = @"C:\Path\To\Your\Excel\File.xlsx";
-
-        try
-        {
-            // Open the Excel workbook
-            using (var workbook = new XLWorkbook(excelFilePath))
-            {
-                // Get the first worksheet
-                var worksheet = workbook.Worksheet(1);
-
-                // Iterate through the rows
-                foreach (var row in worksheet.RowsUsed().Skip(1)) // Skip the header row
-                {
-                    // Get folder path and file name from Excel cells
-                    string folderPath = row.Cell(1).GetString();
-                    string fileName = row.Cell(2).GetString();
-
-                    // Combine the path and file name
-                    string filePath = Path.Combine(folderPath, fileName);
-
-                    // Check if the file exists
-                    if (File.Exists(filePath))
-                    {
-                        // Get file size in bytes
-                        long fileSizeBytes = new FileInfo(filePath).Length;
-
-                        // Convert bytes to kilobytes and round to the nearest whole number
-                        int fileSizeKB = (int)Math.Round(fileSizeBytes / 1024.0);
-
-                        if (fileSizeKB > 0)
-                        {
-                            Console.WriteLine($"File '{filePath}' has data. File Size: {fileSizeKB} KB");
-                        }
-                        else
-                        {
-                            Console.WriteLine($"File '{filePath}' is empty.");
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"File '{fileName}' does not exist in the specified path '{folderPath}'.");
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-    }
-}
-
-//version 4
-using System;
-using System.IO;
-using Excel = Microsoft.Office.Interop.Excel;
-
-class Program
-{
-    static void Main()
-    {
-        // Specify the path to the Excel file containing folder paths and file names
-        string excelFilePath = @"C:\Path\To\Your\Excel\File.xlsx";
-
-        // Create an Excel application object
-        Excel.Application excelApp = new Excel.Application();
-
-        try
-        {
-            // Open the Excel workbook
-            Excel.Workbook workbook = excelApp.Workbooks.Open(excelFilePath);
-
-            // Get the first worksheet
-            Excel.Worksheet worksheet = (Excel.Worksheet)workbook.Sheets[1];
-
-            // Get the used range of cells
-            Excel.Range usedRange = worksheet.UsedRange;
-
-            // Get the number of rows in the worksheet
-            int rowCount = usedRange.Rows.Count;
-
-            // Iterate through the rows
-            for (int row = 2; row <= rowCount; row++) // Assuming the header is in the first row
-            {
-                // Get folder path and file name from Excel cells
-                string folderPath = Convert.ToString((worksheet.Cells[row, 1] as Excel.Range)?.Value);
-                string fileName = Convert.ToString((worksheet.Cells[row, 2] as Excel.Range)?.Value);
-
-                // Combine the path and file name
-                string filePath = Path.Combine(folderPath, fileName);
-
-                // Check if the file exists
-                if (File.Exists(filePath))
-                {
-                    // Get file size in bytes
-                    long fileSizeBytes = new FileInfo(filePath).Length;
-
-                    // Convert bytes to kilobytes and round to the nearest whole number
-                    int fileSizeKB = (int)Math.Round(fileSizeBytes / 1024.0);
-
-                    if (fileSizeKB > 0)
-                    {
-                        Console.WriteLine($"File '{filePath}' has data. File Size: {fileSizeKB} KB");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"File '{filePath}' is empty.");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"File '{fileName}' does not exist in the specified path '{folderPath}'.");
-                }
-            }
-
-            // Close the workbook and release resources
-            workbook.Close(false);
-            excelApp.Quit();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-        finally
-        {
-            // Release COM objects
-            System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp);
-        }
-    }
-}
-//version 4
-using System;
-using System.IO;
-using Excel = Microsoft.Office.Interop.Excel;
-
-class Program
-{
-    static void Main()
-    {
-        // Specify the path to the Excel file containing folder paths and file names
-        string excelFilePath = @"C:\Path\To\Your\Excel\File.xlsx";
-
-        // Create an Excel application object
-        Excel.Application excelApp = new Excel.Application();
-
-        try
-        {
-            // Open the Excel workbook
-            Excel.Workbook workbook = excelApp.Workbooks.Open(excelFilePath);
-
-            // Get the first worksheet
-            Excel.Worksheet worksheet = (Excel.Worksheet)workbook.Sheets[1];
-
-            // Get the used range of cells
-            Excel.Range usedRange = worksheet.UsedRange;
-
-            // Get the number of rows in the worksheet
-            int rowCount = usedRange.Rows.Count;
-
-            // Iterate through the rows
-            for (int row = 2; row <= rowCount; row++) // Assuming the header is in the first row
-            {
-                // Get folder path and file name from Excel cells
-                string folderPath = Convert.ToString((worksheet.Cells[row, 1] as Excel.Range)?.Value);
-                string fileName = Convert.ToString((worksheet.Cells[row, 2] as Excel.Range)?.Value);
-
-                // Combine the path and file name
-                string filePath = Path.Combine(folderPath, fileName);
-
-                // Check if the file exists
-                if (File.Exists(filePath))
-                {
-                    // Get file size in bytes
-                    long fileSizeBytes = new FileInfo(filePath).Length;
-
-                    // Convert bytes to kilobytes and round to the nearest whole number
-                    int fileSizeKB = (int)Math.Round(fileSizeBytes / 1024.0);
-
-                    if (fileSizeKB > 0)
-                    {
-                        Console.WriteLine($"File '{filePath}' has data. File Size: {fileSizeKB} KB");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"File '{filePath}' is empty.");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"File '{fileName}' does not exist in the specified path '{folderPath}'.");
-                }
-            }
-
-            // Close the workbook and release resources
-            workbook.Close(false);
-            excelApp.Quit();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-        finally
-        {
-            // Release COM objects
-            System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp);
-        }
+        return dataTable;
     }
 }
