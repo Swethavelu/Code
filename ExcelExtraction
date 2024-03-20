@@ -131,3 +131,97 @@ class Program
         return dataTable;
     }
 }
+
+
+//version 3 To redirec to respective file extension exe
+using System;
+using System.Data;
+using System.Diagnostics;
+using System.IO;
+
+class Program
+{
+    static void Main()
+    {
+        // Sample data table
+        DataTable dataTable = GetSampleDataTable();
+
+        // Iterate through each row in the data table
+        foreach (DataRow row in dataTable.Rows)
+        {
+            string folderPath = row["Folder path"].ToString();
+            string outputFileName = row["Output File Name"].ToString();
+
+            // Check if the output file exists
+            string outputFileFullPath = Path.Combine(folderPath, outputFileName);
+            bool fileExists = File.Exists(outputFileFullPath);
+
+            // Display the result
+            Console.WriteLine($"ID: {row["ID"]}, Description: {row["Description"]}, Jobname: {row["Jobname"]}, Folder path: {folderPath}, Output File Name: {outputFileName}, File Exists: {(fileExists ? "Yes" : "No")}");
+
+            // Redirect based on file size
+            if (fileExists)
+            {
+                FileInfo fileInfo = new FileInfo(outputFileFullPath);
+                long fileSizeKB = fileInfo.Length / 1024; // Convert to KB
+
+                Console.WriteLine($"File Size: {fileSizeKB} KB");
+
+                string fileExtension = Path.GetExtension(outputFileName).ToLower();
+
+                if (fileSizeKB < 1000)
+                {
+                    // Redirect based on file extension
+                    switch (fileExtension)
+                    {
+                        case ".txt":
+                        case ".dat":
+                        case ".csv":
+                            Console.WriteLine("Redirecting to Text_Comparison.exe");
+                            Process.Start("Text_Comparison.exe", outputFileFullPath);
+                            break;
+                        case ".xlsx":
+                            Console.WriteLine("Redirecting to Excel_Comparison.exe");
+                            Process.Start("Excel_Comparison.exe", outputFileFullPath);
+                            break;
+                        default:
+                            Console.WriteLine("File extension not supported for comparison.");
+                            break;
+                    }
+                }
+                else
+                {
+                    // Redirect to DBComparison.exe
+                    Console.WriteLine("Redirecting to DBComparison.exe");
+                    Process.Start("DBComparison.exe", outputFileFullPath);
+                }
+            }
+            else
+            {
+                Console.WriteLine("File does not exist.");
+            }
+
+            Console.WriteLine();
+        }
+    }
+
+    // Method to create sample data table
+    static DataTable GetSampleDataTable()
+    {
+        DataTable dataTable = new DataTable();
+        dataTable.Columns.Add("ID", typeof(int));
+        dataTable.Columns.Add("Description", typeof(string));
+        dataTable.Columns.Add("Jobname", typeof(string));
+        dataTable.Columns.Add("Folder path", typeof(string));
+        dataTable.Columns.Add("Output File Name", typeof(string));
+        dataTable.Columns.Add("SQL", typeof(string));
+        dataTable.Columns.Add("Oracle", typeof(string));
+
+        // Sample data
+        dataTable.Rows.Add(1, "Description 1", "Job 1", @"C:\SampleFolder1", "OutputFile1.txt", "SQL1", "Oracle1");
+        dataTable.Rows.Add(2, "Description 2", "Job 2", @"C:\SampleFolder2", "OutputFile2.csv", "SQL2", "Oracle2");
+        dataTable.Rows.Add(3, "Description 3", "Job 3", @"C:\SampleFolder3", "OutputFile3.xlsx", "SQL3", "Oracle3");
+
+        return dataTable;
+    }
+}
