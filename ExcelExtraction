@@ -358,54 +358,31 @@ class Program
             // Check if SQL or Oracle value is "Yes"
             if (sqlValue.Equals("Yes", StringComparison.OrdinalIgnoreCase) || oracleValue.Equals("Yes", StringComparison.OrdinalIgnoreCase))
             {
-                // Check file extension and redirect accordingly
                 string outputFileFullPath = Path.Combine(folderPath, outputFileName);
-                string fileExtension = Path.GetExtension(outputFileName).ToLower();
 
+                // Check if the file exists in the folder
                 if (File.Exists(outputFileFullPath))
                 {
+                    // Display file present information
                     FileInfo fileInfo = new FileInfo(outputFileFullPath);
                     long fileSizeKB = fileInfo.Length / 1024; // Convert to KB
 
                     Console.WriteLine("File Name: " + outputFileName);
+                    Console.WriteLine("File Present: Yes");
+                    Console.WriteLine("File Size: " + fileSizeKB + " KB");
+                    Console.WriteLine("File Path: " + outputFileFullPath);
 
-                    // SQL section
-                    if (sqlValue.Equals("Yes", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Console.WriteLine("SQL:");
-                        if (IsValidExtension(fileExtension))
-                        {
-                            Console.WriteLine($"   File Present: Yes");
-                            Console.WriteLine($"   File Size: {fileSizeKB} KB");
-                            Console.WriteLine($"   File Path: {outputFileFullPath}");
-                            RedirectBasedOnSizeAndExtension(fileSizeKB, fileExtension, outputFileName);
-                        }
-                        else
-                        {
-                            Console.WriteLine("   Invalid file extension.");
-                        }
-                    }
-
-                    // Oracle section
-                    if (oracleValue.Equals("Yes", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Console.WriteLine("Oracle:");
-                        if (IsValidExtension(fileExtension))
-                        {
-                            Console.WriteLine($"   File Present: Yes");
-                            Console.WriteLine($"   File Size: {fileSizeKB} KB");
-                            Console.WriteLine($"   File Path: {outputFileFullPath}");
-                            RedirectBasedOnSizeAndExtension(fileSizeKB, fileExtension, outputFileName);
-                        }
-                        else
-                        {
-                            Console.WriteLine("   Invalid file extension.");
-                        }
-                    }
+                    // Check file extension and redirect accordingly
+                    string fileExtension = Path.GetExtension(outputFileName).ToLower();
+                    RedirectBasedOnSizeAndExtension(fileSizeKB, fileExtension, outputFileName);
                 }
                 else
                 {
-                    Console.WriteLine($"File '{outputFileName}' does not exist.");
+                    // File not present
+                    Console.WriteLine("File Name: " + outputFileName);
+                    Console.WriteLine("File Present: No");
+                    Console.WriteLine("File Size: ");
+                    Console.WriteLine("File Path: ");
                 }
             }
 
@@ -462,3 +439,4 @@ class Program
         }
     }
 }
+
