@@ -815,3 +815,133 @@ class Program
         }
     }
 }
+
+//version 9
+using System;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.Data;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+
+class Program
+{
+    static void Main()
+    {
+        // Sample data table
+        DataTable dataTable = GetSampleDataTable();
+
+        // Get servers from web config
+        NameValueCollection servers = ConfigurationManager.GetSection("Servers") as NameValueCollection;
+
+        if (servers == null || servers.Count == 0)
+        {
+            Console.WriteLine("No servers configured in the web.config.");
+            return;
+        }
+
+        // Iterate through each server
+        foreach (string environment in servers.AllKeys)
+        {
+            string server = servers[environment];
+
+            Console.WriteLine($"Environment: {environment}, Server: {server}");
+
+            // Get AutosysExePath from config
+            string autosysExePath = ConfigurationManager.AppSettings["AutosysExePath"];
+            if (string.IsNullOrEmpty(autosysExePath))
+            {
+                Console.WriteLine("AutosysExePath is not configured in the app settings.");
+                continue;
+            }
+
+            // Iterate through each row in the data table
+            foreach (DataRow row in dataTable.Rows)
+            {
+                string folderPath = row["Folder path"].ToString();
+                string outputFileName = row["Output File Name"].ToString();
+                string sqlValue = row["SQL"].ToString();
+                string oracleValue = row["Oracle"].ToString();
+                string jobName = row["Jobname"].ToString();
+
+                // Check if SQL or Oracle value is "Yes" and if the job name contains the environment name
+                if ((sqlValue.Equals("Yes", StringComparison.OrdinalIgnoreCase) || oracleValue.Equals("Yes", StringComparison.OrdinalIgnoreCase))
+                    && (jobName.Contains("BAU") || jobName.Contains("CONV4")))
+                {
+                    // Append the key value to the path
+                    string path = Path.Combine(autosysExePath, server, folderPath.Substring(2)); // Remove "d$" from the folder path
+
+                    // Check if the file exists in the server's folder
+                    bool fileExists = File.Exists(Path.Combine(path, outputFileName));
+
+                    if (fileExists)
+                    {
+                        // Display file information
+                        FileInfo fileInfo = new FileInfo(outputFileName);
+                        long fileSizeKB = fileInfo.Length / 1024; // Convert to KB
+
+                        Console.WriteLine("File Name: " + outputFileName);
+                        Console.WriteLine("File Present: Yes");
+                        Console.WriteLine("File Size: " + fileSizeKB + " KB");
+                        Console.WriteLine("File Path: " + Path.Combine(path, outputFileName));
+
+                        // Redirect based on file size and extension
+                        RedirectBasedOnSizeAndExtension(fileSizeKB, outputFileName);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"File '{outputFileName}' does not exist in the folder path '{path}' on server '{server}'.");
+                    }
+                }
+
+                Console.WriteLine();
+            }
+        }
+    }
+
+    // Method to create sample data table
+    static DataTable GetSampleDataTable()
+    {
+        DataTable dataTable = new DataTable();
+        dataTable.Columns.Add("ID", typeof(int));
+        dataTable.Columns.Add("Description", typeof(string));
+        dataTable.Columns.Add("Jobname", typeof(string));
+        dataTable.Columns.Add("Folder path", typeof(string));
+        dataTable.Columns.Add("Output File Name", typeof(string));
+        dataTable.Columns.Add("SQL", typeof(string));
+        dataTable.Columns.Add("Oracle", typeof(string));
+
+        // Sample data
+        dataTable.Rows.Add(1, "Description 1", "Job 1 BAU", @"d$\app\LoanIQ\SampleFolder1", "OutputFile1.txt", "Yes", "No");
+        dataTable.Rows.Add(2, "Description 2", "Job 2 CONV4", @"d$\app\LoanIQ\SampleFolder2", "OutputFile2.xlsx", "No", "Yes");
+        dataTable.Rows.Add(3, "Description 3", "Job 3", @"d$\app\LoanIQ\SampleFolder3", "OutputFile3.txt", "Yes", "No");
+
+        return dataTable;
+    }
+
+    // Method to redirect based on file size and extension
+    static void RedirectBasedOnSizeAndExtension(long fileSizeKB, string outputFileName)
+    {
+        string fileExtension = Path.GetExtension(outputFileName).ToLower();
+        
+        if (fileSizeKB < 1000)
+        {
+            if (fileExtension == ".xlsx")
+            {
+                Console.WriteLine("Redirecting to Excel_Comparison.exe");
+                Process.Start("Excel_Comparison.exe", outputFileName);
+            }
+            else
+            {
+                Console.WriteLine("Redirecting to Text_Comparison.exe");
+                Process.Start("Text_Comparison.exe", outputFileName);
+            }
+        }
+        else
+        {
+            Console.WriteLine("Redirecting to DBComparison.exe");
+            Process.Start("DBComparison.exe", outputFileName);
+        }
+    }
+}
