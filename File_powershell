@@ -1,0 +1,47 @@
+# Define function to check file size and presence of data
+function Check-File {
+    param (
+        [string]$FilePath
+    )
+    $FileExists = Test-Path $FilePath
+    if ($FileExists) {
+        $FileSize = (Get-Item $FilePath).length
+        if ($FileSize -gt 0) {
+            Write-Output "File $FilePath exists and has data."
+        } else {
+            Write-Output "File $FilePath exists but is empty."
+        }
+    } else {
+        Write-Output "File $FilePath does not exist."
+    }
+}
+
+# Define function to copy file to shared network drive
+function Copy-FileToNetworkDrive {
+    param (
+        [string]$SourceFilePath,
+        [string]$DestinationFolderPath
+    )
+    $DestinationFilePath = Join-Path -Path $DestinationFolderPath -ChildPath (Split-Path -Leaf $SourceFilePath)
+    Copy-Item -Path $SourceFilePath -Destination $DestinationFilePath
+    if (Test-Path $DestinationFilePath) {
+        Write-Output "File copied successfully to $DestinationFolderPath"
+    } else {
+        Write-Output "Failed to copy file to $DestinationFolderPath"
+    }
+}
+
+# Main script
+$dataTable = @(
+    # Define your data table here, with columns ID, DESCRIPTION, JOBNAME, FOLDERPATH, OUTPUT FILE NAME, SQL, and ORACLE
+)
+
+foreach ($row in $dataTable) {
+    $FilePath = Join-Path -Path $row.FOLDERPATH -ChildPath $row.'OUTPUT FILE NAME'
+    Check-File -FilePath $FilePath
+
+    # If file exists and has data, copy it to shared network drive
+    if (Test-Path $FilePath) {
+        Copy-FileToNetworkDrive -SourceFilePath $FilePath -DestinationFolderPath "\\shared_network_drive\path"
+    }
+}
