@@ -1,47 +1,57 @@
-# Define function to check file size and presence of data
-function Check-File {
-    param (
-        [string]$FilePath
-    )
-    $FileExists = Test-Path $FilePath
-    if ($FileExists) {
-        $FileSize = (Get-Item $FilePath).length
-        if ($FileSize -gt 0) {
-            Write-Output "File $FilePath exists and has data."
-        } else {
-            Write-Output "File $FilePath exists but is empty."
-        }
-    } else {
-        Write-Output "File $FilePath does not exist."
+# Load the Excel interop assembly
+Add-Type -AssemblyName Microsoft.Office.Interop.Excel
+
+# Set the path to the Excel file
+$excelFilePath = "C:\Path\To\Your\File.xlsx"
+
+# Create a new Excel application
+$excel = New-Object -ComObject Excel.Application
+
+# Open the workbook
+$workbook = $excel.Workbooks.Open($excelFilePath)
+
+# Select the first worksheet
+$worksheet = $workbook.Worksheets.Item(1)
+
+# Find the last row and column with data
+$maxRow = $worksheet.UsedRange.Rows.Count
+$maxCol = $worksheet.UsedRange.Columns.Count
+
+# Loop through each row in the worksheet
+for ($row = 2; $row -le $maxRow; $row++) {
+    # Read values from the current row
+    $ID = $worksheet.Cells.Item($row, 1).Value2
+    $description = $worksheet.Cells.Item($row, 2).Value2
+    $Jobname = $worksheet.Cells.Item($row, 3).Value2
+    $SourceFolderPath = $worksheet.Cells.Item($row, 4).Value2
+    $DestinationFolderPath = $worksheet.Cells.Item($row, 5).Value2
+    $OutputFilename = $worksheet.Cells.Item($row, 6).Value2
+    $JobStatus = $worksheet.Cells.Item($row, 7).Value2
+    $SQL = $worksheet.Cells.Item($row, 8).Value2
+    $Oracle = $worksheet.Cells.Item($row, 9).Value2
+
+    # Check if the Job status is "completed"
+    if ($JobStatus -eq "completed") {
+        # Copy the file from source folder to destination folder
+        $sourceFile = Join-Path -Path $SourceFolderPath -ChildPath $OutputFilename
+        $destinationFile = Join-Path -Path $DestinationFolderPath -ChildPath $OutputFilename
+        Copy-Item -Path $sourceFile -Destination $destinationFile -Force
+        Write-Host "File '$OutputFilename' copied from '$SourceFolderPath' to '$DestinationFolderPath'."
     }
 }
 
-# Define function to copy file to shared network drive
-function Copy-FileToNetworkDrive {
-    param (
-        [string]$SourceFilePath,
-        [string]$DestinationFolderPath
-    )
-    $DestinationFilePath = Join-Path -Path $DestinationFolderPath -ChildPath (Split-Path -Leaf $SourceFilePath)
-    Copy-Item -Path $SourceFilePath -Destination $DestinationFilePath
-    if (Test-Path $DestinationFilePath) {
-        Write-Output "File copied successfully to $DestinationFolderPath"
-    } else {
-        Write-Output "Failed to copy file to $DestinationFolderPath"
-    }
-}
+# Close the workbook and Excel application
+$workbook.Close()
+$excel.Quit()
 
-# Main script
-$dataTable = @(
-    # Define your data table here, with columns ID, DESCRIPTION, JOBNAME, FOLDERPATH, OUTPUT FILE NAME, SQL, and ORACLE
-)
+# Release COM objects
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($worksheet) | Out-Null
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+Remove-Variable excel, workbook, worksheet
 
-foreach ($row in $dataTable) {
-    $FilePath = Join-Path -Path $row.FOLDERPATH -ChildPath $row.'OUTPUT FILE NAME'
-    Check-File -FilePath $FilePath
+# Clear clipboard (if used)
+[GC]::Collect()
+[GC]::WaitForPendingFinalizers()
 
-    # If file exists and has data, copy it to shared network drive
-    if (Test-Path $FilePath) {
-        Copy-FileToNetworkDrive -SourceFilePath $FilePath -DestinationFolderPath "\\shared_network_drive\path"
-    }
-}
+Write-Host "Script execution completed."
