@@ -7,10 +7,18 @@ $destinationPath = "C:\Destination\"
 # Read the CSV file
 $csvData = Import-Csv -Path $inputCSVPath
 
+# Debugging: Display column names
+Write-Host "Column names in CSV file:"
+$csvData[0].PSObject.Properties.Name
+
 # Check if the 'FolderPath' column exists in the CSV data
 if ($csvData[0].PSObject.Properties.Name -contains 'FolderPath') {
     # Get the folder paths from the 'FolderPath' column
-    $folderPaths = $csvData.'FolderPath'
+    $folderPaths = $csvData | Select-Object -ExpandProperty FolderPath
+
+    # Debugging: Display folder paths
+    Write-Host "Folder paths:"
+    $folderPaths
 
     # Iterate through each folder path
     foreach ($folderPath in $folderPaths) {
