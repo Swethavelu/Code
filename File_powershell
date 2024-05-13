@@ -1,34 +1,41 @@
-# Import the Import-Excel module
-Import-Module Import-Excel
-
-# Specify the input Excel file path
-$inputExcelPath = "C:\Path\to\input.xlsx"
+# Specify the input CSV file path
+$inputCSVPath = "C:\Path\to\input.csv"
 
 # Specify the default destination path
 $destinationPath = "C:\Destination\"
 
-# Specify the name of the column containing folder paths in the Excel file
+# Specify the name of the column containing folder paths in the CSV file
 $folderPathColumnName = "FolderPath"
 
-# Read the Excel file
-$excelData = Import-Excel -Path $inputExcelPath
+# Read the CSV file
+$csvData = Import-Csv -Path $inputCSVPath
 
-# Iterate through each row in the Excel data
-foreach ($row in $excelData) {
-    # Get the folder path from the specified column
-    $folderPath = $row.$folderPathColumnName
-    
-    # Check if the folder path exists
-    if (Test-Path $folderPath -PathType Container) {
-        # Get all files in the folder
-        $files = Get-ChildItem -Path $folderPath
-        
-        # Copy each file to the destination path
-        foreach ($file in $files) {
-            Copy-Item -Path $file.FullName -Destination $destinationPath -Force
+# Iterate through each row in the CSV data
+foreach ($row in $csvData) {
+    # Check if the folder path column exists in the CSV data
+    if ($row.PSObject.Properties.Name -contains $folderPathColumnName) {
+        # Get the folder path from the specified column
+        $folderPath = $row.$folderPathColumnName
+
+        # Check if the folder path exists
+        if (Test-Path $folderPath -PathType Container) {
+            # Get all files in the folder
+            $files = Get-ChildItem -Path $folderPath
+
+            # Check if there are files in the folder
+            if ($files.Count -gt 0) {
+                # Copy each file to the destination path
+                foreach ($file in $files) {
+                    Copy-Item -Path $file.FullName -Destination $destinationPath -Force
+                }
+                Write-Host "Files copied from $($folderPath) to $($destinationPath)"
+            } else {
+                Write-Warning "No files found in folder path: $($folderPath)"
+            }
+        } else {
+            Write-Warning "Folder path $($folderPath) does not exist."
         }
-        Write-Host "Files copied from $($folderPath) to $($destinationPath)"
     } else {
-        Write-Warning "Folder path $($folderPath) does not exist."
+        Write-Warning "Folder path column '$folderPathColumnName' not found in the CSV file."
     }
 }
