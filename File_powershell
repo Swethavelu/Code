@@ -1,50 +1,54 @@
-# Install Import-Excel module if not already installed
-Install-Module Import-Excel -Scope CurrentUser -Force
-
-# Import the Import-Excel module
-Import-Module Import-Excel
-
-# Specify the input Excel file path
-$inputExcelPath = "C:\Path\to\input.xlsx"
-
-# Specify the default destination path
-$destinationPath = "C:\Destination\"
-
-# Specify the name of the data table in the Excel file
-$dataTableName = "Sheet1"  # Update with the actual name of your data table
-
-# Specify the name of the column containing folder paths in the data table
-$folderPathColumnName = "FolderPath"
-
-# Read the Excel file
-$excelData = Import-Excel -Path $inputExcelPath -WorksheetName $dataTableName
-
-# Check if the 'FolderPath' column exists in the Excel data
-if ($excelData[0].PSObject.Properties.Name -contains $folderPathColumnName) {
-    # Get the folder paths from the 'FolderPath' column
-    $folderPaths = $excelData | Select-Object -ExpandProperty $folderPathColumnName
-
-    # Iterate through each folder path
-    foreach ($folderPath in $folderPaths) {
-        # Check if the folder path exists
-        if (Test-Path $folderPath -PathType Container) {
-            # Get all files in the folder
-            $files = Get-ChildItem -Path $folderPath
-
-            # Check if there are files in the folder
-            if ($files.Count -gt 0) {
-                # Copy each file to the destination path
-                foreach ($file in $files) {
-                    Copy-Item -Path $file.FullName -Destination $destinationPath -Force
-                }
-                Write-Host "Files copied from $($folderPath) to $($destinationPath)"
-            } else {
-                Write-Warning "No files found in folder path: $($folderPath)"
-            }
-        } else {
-            Write-Warning "Folder path $($folderPath) does not exist."
-        }
+# Define your data table with source and destination folder paths
+$dataTable = @(
+    @{
+        ID = 1
+        Description = "Description1"
+        JobName = "Job1"
+        SourceFolderPath = "C:\SourceFolder1"
+        DestinationFolderPath = "C:\DestinationFolder1"
+        OutputFileName = "OutputFile1.txt"
+        SQL = $true
+        Oracle = $false
+    },
+    @{
+        ID = 2
+        Description = "Description2"
+        JobName = "Job2"
+        SourceFolderPath = "C:\SourceFolder2"
+        DestinationFolderPath = "C:\DestinationFolder2"
+        OutputFileName = "OutputFile2.txt"
+        SQL = $false
+        Oracle = $true
     }
-} else {
-    Write-Warning "Column '$folderPathColumnName' not found in the Excel data table."
+)
+
+# Function to copy files
+function Copy-Files {
+    param (
+        [string]$sourcePath,
+        [string]$destinationPath
+    )
+    Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+}
+
+# Loop through the data table
+foreach ($row in $dataTable) {
+    $sourceFolderPath = $row.SourceFolderPath
+    $outputFileName = $row.OutputFileName
+    $sourceFilePath = Join-Path -Path $sourceFolderPath -ChildPath $outputFileName
+
+    # Check if the source folder exists
+    if (Test-Path $sourceFolderPath -PathType Container) {
+        # Perform file copy
+        $destinationFolderPath = $row.DestinationFolderPath
+        if (-not (Test-Path $destinationFolderPath -PathType Container)) {
+            New-Item -Path $destinationFolderPath -ItemType Directory | Out-Null
+        }
+        $destinationFilePath = Join-Path -Path $destinationFolderPath -ChildPath $outputFileName
+        Copy-Files -sourcePath $sourceFilePath -destinationPath $destinationFilePath
+
+        Write-Host "File copied: $outputFileName"
+    } else {
+        Write-Host "Source folder not found: $sourceFolderPath"
+    }
 }
