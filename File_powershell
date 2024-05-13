@@ -24,6 +24,10 @@ if ($csvData[0].PSObject.Properties.Name -contains 'FolderPath') {
     foreach ($folderPath in $folderPaths) {
         # Check if the folder path exists
         if (Test-Path $folderPath -PathType Container) {
+            # Debugging: Display files in folder path
+            Write-Host "Files in folder path $($folderPath):"
+            Get-ChildItem -Path $folderPath
+
             # Get all files in the folder
             $files = Get-ChildItem -Path $folderPath
 
