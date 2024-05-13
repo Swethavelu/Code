@@ -1,33 +1,33 @@
-# Specify the input CSV file path
-$inputCSVPath = "C:\Path\to\input.csv"
+# Install Import-Excel module if not already installed
+Install-Module Import-Excel -Scope CurrentUser -Force
+
+# Import the Import-Excel module
+Import-Module Import-Excel
+
+# Specify the input Excel file path
+$inputExcelPath = "C:\Path\to\input.xlsx"
 
 # Specify the default destination path
 $destinationPath = "C:\Destination\"
 
-# Read the CSV file
-$csvData = Import-Csv -Path $inputCSVPath
+# Specify the name of the data table in the Excel file
+$dataTableName = "Sheet1"  # Update with the actual name of your data table
 
-# Debugging: Display column names
-Write-Host "Column names in CSV file:"
-$csvData[0].PSObject.Properties.Name
+# Specify the name of the column containing folder paths in the data table
+$folderPathColumnName = "FolderPath"
 
-# Check if the 'FolderPath' column exists in the CSV data
-if ($csvData[0].PSObject.Properties.Name -contains 'FolderPath') {
+# Read the Excel file
+$excelData = Import-Excel -Path $inputExcelPath -WorksheetName $dataTableName
+
+# Check if the 'FolderPath' column exists in the Excel data
+if ($excelData[0].PSObject.Properties.Name -contains $folderPathColumnName) {
     # Get the folder paths from the 'FolderPath' column
-    $folderPaths = $csvData | Select-Object -ExpandProperty FolderPath
-
-    # Debugging: Display folder paths
-    Write-Host "Folder paths:"
-    $folderPaths
+    $folderPaths = $excelData | Select-Object -ExpandProperty $folderPathColumnName
 
     # Iterate through each folder path
     foreach ($folderPath in $folderPaths) {
         # Check if the folder path exists
         if (Test-Path $folderPath -PathType Container) {
-            # Debugging: Display files in folder path
-            Write-Host "Files in folder path $($folderPath):"
-            Get-ChildItem -Path $folderPath
-
             # Get all files in the folder
             $files = Get-ChildItem -Path $folderPath
 
@@ -46,5 +46,5 @@ if ($csvData[0].PSObject.Properties.Name -contains 'FolderPath') {
         }
     }
 } else {
-    Write-Warning "Column 'FolderPath' not found in the CSV file."
+    Write-Warning "Column '$folderPathColumnName' not found in the Excel data table."
 }
