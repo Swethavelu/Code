@@ -4,19 +4,16 @@ $inputCSVPath = "C:\Path\to\input.csv"
 # Specify the default destination path
 $destinationPath = "C:\Destination\"
 
-# Specify the name of the column containing folder paths in the CSV file
-$folderPathColumnName = "FolderPath"
-
 # Read the CSV file
 $csvData = Import-Csv -Path $inputCSVPath
 
-# Iterate through each row in the CSV data
-foreach ($row in $csvData) {
-    # Check if the folder path column exists in the CSV data
-    if ($row.PSObject.Properties.Name -contains $folderPathColumnName) {
-        # Get the folder path from the specified column
-        $folderPath = $row.$folderPathColumnName
+# Check if the 'FolderPath' column exists in the CSV data
+if ($csvData[0].PSObject.Properties.Name -contains 'FolderPath') {
+    # Get the folder paths from the 'FolderPath' column
+    $folderPaths = $csvData.'FolderPath'
 
+    # Iterate through each folder path
+    foreach ($folderPath in $folderPaths) {
         # Check if the folder path exists
         if (Test-Path $folderPath -PathType Container) {
             # Get all files in the folder
@@ -35,7 +32,7 @@ foreach ($row in $csvData) {
         } else {
             Write-Warning "Folder path $($folderPath) does not exist."
         }
-    } else {
-        Write-Warning "Folder path column '$folderPathColumnName' not found in the CSV file."
     }
+} else {
+    Write-Warning "Column 'FolderPath' not found in the CSV file."
 }
