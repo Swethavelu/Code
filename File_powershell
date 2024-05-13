@@ -47,6 +47,104 @@ foreach ($row in $dataTable) {
         $destinationFilePath = Join-Path -Path $destinationFolderPath -ChildPath $outputFileName
         Copy-Files -sourcePath $sourceFilePath -destinationPath $destinationFilePath
 
+# version 2
+# Define your data table with source and destination folder paths
+$dataTable = @(
+    @{
+        ID = 1
+        Description = "Description1"
+        JobName = "Job1"
+        SourceFolderPath = "C:\SourceFolder1"
+        DestinationFolderPath = "C:\DestinationFolder1"
+        OutputFileName = "OutputFile1.txt"
+        SQL = $true
+        Oracle = $false
+    },
+    @{
+        ID = 2
+        Description = "Description2"
+        JobName = "Job2"
+        SourceFolderPath = "C:\SourceFolder2"
+        DestinationFolderPath = "C:\DestinationFolder2"
+        OutputFileName = "OutputFile2.xlsx"
+        SQL = $false
+        Oracle = $true
+    }
+)
+
+# Function to copy files
+function Copy-Files {
+    param (
+        [string]$sourcePath,
+        [string]$destinationPath
+    )
+    Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+}
+
+# Function to compare text files
+function Compare-TextFiles {
+    param (
+        [string]$sourcePath,
+        [string]$destinationPath
+    )
+    # Replace with appropriate text comparison command
+    Write-Host "Performing text comparison for files: $sourcePath, $destinationPath"
+}
+
+# Function to compare Excel files
+function Compare-ExcelFiles {
+    param (
+        [string]$sourcePath,
+        [string]$destinationPath
+    )
+    # Replace with appropriate Excel comparison command
+    Write-Host "Performing Excel comparison for files: $sourcePath, $destinationPath"
+}
+
+# Loop through the data table
+foreach ($row in $dataTable) {
+    $sourceFolderPath = $row.SourceFolderPath
+    $outputFileName = $row.OutputFileName
+    $sourceFilePath = Join-Path -Path $sourceFolderPath -ChildPath $outputFileName
+
+    # Check if the source folder exists
+    if (Test-Path $sourceFolderPath -PathType Container) {
+        # Check if the file exists
+        if (Test-Path $sourceFilePath -PathType Leaf) {
+            $fileSize = (Get-Item $sourceFilePath).Length
+            Write-Host "File size: $fileSize bytes"
+
+            $destinationFolderPath = $row.DestinationFolderPath
+            if (-not (Test-Path $destinationFolderPath -PathType Container)) {
+                New-Item -Path $destinationFolderPath -ItemType Directory | Out-Null
+            }
+            $destinationFilePath = Join-Path -Path $destinationFolderPath -ChildPath $outputFileName
+
+            # Determine file extension
+            $fileExtension = [System.IO.Path]::GetExtension($sourceFilePath)
+
+            # Perform different actions based on file extension
+            switch -Wildcard ($fileExtension) {
+                ".txt" {
+                    Compare-TextFiles -sourcePath $sourceFilePath -destinationPath $destinationFilePath
+                }
+                ".xlsx" {
+                    Compare-ExcelFiles -sourcePath $sourceFilePath -destinationPath $destinationFilePath
+                }
+                default {
+                    Write-Host "Unsupported file format: $fileExtension"
+                }
+            }
+
+            Write-Host "File copied: $outputFileName"
+        } else {
+            Write-Host "File not found: $sourceFilePath"
+        }
+    } else {
+        Write-Host "Source folder not found: $sourceFolderPath"
+    }
+}
+
         Write-Host "File copied: $outputFileName"
     } else {
         Write-Host "Source folder not found: $sourceFolderPath"
