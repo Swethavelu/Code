@@ -16,56 +16,6 @@ $dataTable = @(
         JobName = "Job2"
         SourceFolderPath = "C:\SourceFolder2"
         DestinationFolderPath = "C:\DestinationFolder2"
-        OutputFileName = "OutputFile2.txt"
-        SQL = $false
-        Oracle = $true
-    }
-)
-
-# Function to copy files
-function Copy-Files {
-    param (
-        [string]$sourcePath,
-        [string]$destinationPath
-    )
-    Copy-Item -Path $sourcePath -Destination $destinationPath -Force
-}
-
-# Loop through the data table
-foreach ($row in $dataTable) {
-    $sourceFolderPath = $row.SourceFolderPath
-    $outputFileName = $row.OutputFileName
-    $sourceFilePath = Join-Path -Path $sourceFolderPath -ChildPath $outputFileName
-
-    # Check if the source folder exists
-    if (Test-Path $sourceFolderPath -PathType Container) {
-        # Perform file copy
-        $destinationFolderPath = $row.DestinationFolderPath
-        if (-not (Test-Path $destinationFolderPath -PathType Container)) {
-            New-Item -Path $destinationFolderPath -ItemType Directory | Out-Null
-        }
-        $destinationFilePath = Join-Path -Path $destinationFolderPath -ChildPath $outputFileName
-        Copy-Files -sourcePath $sourceFilePath -destinationPath $destinationFilePath
-
-# version 2
-# Define your data table with source and destination folder paths
-$dataTable = @(
-    @{
-        ID = 1
-        Description = "Description1"
-        JobName = "Job1"
-        SourceFolderPath = "C:\SourceFolder1"
-        DestinationFolderPath = "C:\DestinationFolder1"
-        OutputFileName = "OutputFile1.txt"
-        SQL = $true
-        Oracle = $false
-    },
-    @{
-        ID = 2
-        Description = "Description2"
-        JobName = "Job2"
-        SourceFolderPath = "C:\SourceFolder2"
-        DestinationFolderPath = "C:\DestinationFolder2"
         OutputFileName = "OutputFile2.xlsx"
         SQL = $false
         Oracle = $true
@@ -81,24 +31,26 @@ function Copy-Files {
     Copy-Item -Path $sourcePath -Destination $destinationPath -Force
 }
 
-# Function to compare text files
+# Function to call text comparison utility
 function Compare-TextFiles {
     param (
         [string]$sourcePath,
         [string]$destinationPath
     )
-    # Replace with appropriate text comparison command
-    Write-Host "Performing text comparison for files: $sourcePath, $destinationPath"
+    # Replace with the path to your text comparison utility
+    $textComparisonExe = "C:\Path\To\TextComparison.exe"
+    & $textComparisonExe $sourcePath $destinationPath
 }
 
-# Function to compare Excel files
+# Function to call Excel comparison utility
 function Compare-ExcelFiles {
     param (
         [string]$sourcePath,
         [string]$destinationPath
     )
-    # Replace with appropriate Excel comparison command
-    Write-Host "Performing Excel comparison for files: $sourcePath, $destinationPath"
+    # Replace with the path to your Excel comparison utility
+    $excelComparisonExe = "C:\Path\To\ExcelComparison.exe"
+    & $excelComparisonExe $sourcePath $destinationPath
 }
 
 # Loop through the data table
@@ -140,12 +92,6 @@ foreach ($row in $dataTable) {
         } else {
             Write-Host "File not found: $sourceFilePath"
         }
-    } else {
-        Write-Host "Source folder not found: $sourceFolderPath"
-    }
-}
-
-        Write-Host "File copied: $outputFileName"
     } else {
         Write-Host "Source folder not found: $sourceFolderPath"
     }
