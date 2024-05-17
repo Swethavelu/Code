@@ -51,3 +51,113 @@ foreach ($row in $data) {
         }
     }
 }
+#version 2
+# Define the path to the CSV file
+$csvFilePath = "C:\path\to\your\file.csv"
+
+# Import the CSV data
+$data = Import-Csv -Path $csvFilePath
+
+# Define the threshold for file size in KB
+$sizeThresholdKB = 200000
+
+# Define paths to comparison executables
+$databaseComparisonExe = "C:\path\to\database_comparison.exe"
+$excelComparisonExe = "C:\path\to\excel_comparison.exe"
+$textComparisonExe = "C:\path\to\text_comparison.exe"
+
+# Function to start a comparison process
+function Start-ComparisonProcess {
+    param (
+        [string]$exePath,
+        [string]$filePath
+    )
+    try {
+        Start-Process -FilePath $exePath -ArgumentList $filePath
+        Write-Output "Started comparison process with $exePath for file $filePath"
+    } catch {
+        Write-Error "Failed to start comparison process with $exePath for file $filePath: $_"
+    }
+}
+
+# Loop through each row in the CSV
+foreach ($row in $data) {
+    # Check if the JobStatus is Completed
+    if ($row.JobStatus -eq "Completed") {
+        # Process BAU files
+        $bauSourcePath = $row.BAU_SourceFolderPath
+        $bauDestinationPath = $row.BAU_DestinationFolderPath
+        $bauFileName = $row.BAU_FileName
+
+        if ($bauFileName) {
+            $bauSourceFile = Join-Path -Path $bauSourcePath -ChildPath $bauFileName
+            $bauDestinationFile = Join-Path -Path $bauDestinationPath -ChildPath $bauFileName
+
+            if (Test-Path -Path $bauSourceFile) {
+                try {
+                    Copy-Item -Path $bauSourceFile -Destination $bauDestinationFile -Force
+                    Write-Output "Copied $bauSourceFile to $bauDestinationFile"
+
+                    # Get file size in KB
+                    $fileSizeKB = (Get-Item $bauDestinationFile).Length / 1KB
+                    Write-Output "File size of $bauDestinationFile is $fileSizeKB KB"
+
+                    if ($fileSizeKB -gt $sizeThresholdKB) {
+                        # Redirect to database comparison
+                        Start-ComparisonProcess -exePath $databaseComparisonExe -filePath $bauDestinationFile
+                    } else {
+                        # Check file extension
+                        $fileExtension = [System.IO.Path]::GetExtension($bauDestinationFile).ToLower()
+                        switch ($fileExtension) {
+                            ".xls" { Start-ComparisonProcess -exePath $excelComparisonExe -filePath $bauDestinationFile }
+                            ".xlsx" { Start-ComparisonProcess -exePath $excelComparisonExe -filePath $bauDestinationFile }
+                            default { Start-ComparisonProcess -exePath $textComparisonExe -filePath $bauDestinationFile }
+                        }
+                    }
+                } catch {
+                    Write-Error "Failed to copy $bauSourceFile to $bauDestinationFile: $_"
+                }
+            } else {
+                Write-Warning "$bauSourceFile does not exist."
+            }
+        }
+
+        # Process CONV4 files
+        $conv4SourcePath = $row.CONV4_SourceFolderPath
+        $conv4DestinationPath = $row.CONV4_DestinationFolderPath
+        $conv4FileName = $row.CONV4_FileName
+
+        if ($conv4FileName) {
+            $conv4SourceFile = Join-Path -Path $conv4SourcePath -ChildPath $conv4FileName
+            $conv4DestinationFile = Join-Path -Path $conv4DestinationPath -ChildPath $conv4FileName
+
+            if (Test-Path -Path $conv4SourceFile) {
+                try {
+                    Copy-Item -Path $conv4SourceFile -Destination $conv4DestinationFile -Force
+                    Write-Output "Copied $conv4SourceFile to $conv4DestinationFile"
+
+                    # Get file size in KB
+                    $fileSizeKB = (Get-Item $conv4DestinationFile).Length / 1KB
+                    Write-Output "File size of $conv4DestinationFile is $fileSizeKB KB"
+
+                    if ($fileSizeKB -gt $sizeThresholdKB) {
+                        # Redirect to database comparison
+                        Start-ComparisonProcess -exePath $databaseComparisonExe -filePath $conv4DestinationFile
+                    } else {
+                        # Check file extension
+                        $fileExtension = [System.IO.Path]::GetExtension($conv4DestinationFile).ToLower()
+                        switch ($fileExtension) {
+                            ".xls" { Start-ComparisonProcess -exePath $excelComparisonExe -filePath $conv4DestinationFile }
+                            ".xlsx" { Start-ComparisonProcess -exePath $excelComparisonExe -filePath $conv4DestinationFile }
+                            default { Start-ComparisonProcess -exePath $textComparisonExe -filePath $conv4DestinationFile }
+                        }
+                    }
+                } catch {
+                    Write-Error "Failed to copy $conv4SourceFile to $conv4DestinationFile: $_"
+                }
+            } else {
+                Write-Warning "$conv4SourceFile does not exist."
+            }
+        }
+    }
+}
