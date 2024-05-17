@@ -8,26 +8,46 @@ $data = Import-Csv -Path $csvFilePath
 foreach ($row in $data) {
     # Check if the JobStatus is Completed
     if ($row.JobStatus -eq "Completed") {
-        # Determine the source and destination paths based on the type
-        $sourcePath = $row.SourceFolderPath
-        $destinationPath = $row.DestinationFolderPath
-        $fileName = $row.FileName
+        # Process BAU files
+        $bauSourcePath = $row.BAU_SourceFolderPath
+        $bauDestinationPath = $row.BAU_DestinationFolderPath
+        $bauFileName = $row.BAU_FileName
 
-        # Construct the full source and destination file paths
-        $sourceFile = Join-Path -Path $sourcePath -ChildPath $fileName
-        $destinationFile = Join-Path -Path $destinationPath -ChildPath $fileName
+        if ($bauFileName) {
+            $bauSourceFile = Join-Path -Path $bauSourcePath -ChildPath $bauFileName
+            $bauDestinationFile = Join-Path -Path $bauDestinationPath -ChildPath $bauFileName
 
-        # Check if the source file exists
-        if (Test-Path -Path $sourceFile) {
-            try {
-                # Copy the file to the destination folder
-                Copy-Item -Path $sourceFile -Destination $destinationFile -Force
-                Write-Output "Copied $sourceFile to $destinationFile"
-            } catch {
-                Write-Error "Failed to copy $sourceFile to $destinationFile: $_"
+            if (Test-Path -Path $bauSourceFile) {
+                try {
+                    Copy-Item -Path $bauSourceFile -Destination $bauDestinationFile -Force
+                    Write-Output "Copied $bauSourceFile to $bauDestinationFile"
+                } catch {
+                    Write-Error "Failed to copy $bauSourceFile to $bauDestinationFile: $_"
+                }
+            } else {
+                Write-Warning "$bauSourceFile does not exist."
             }
-        } else {
-            Write-Warning "$sourceFile does not exist."
+        }
+
+        # Process CONV4 files
+        $conv4SourcePath = $row.CONV4_SourceFolderPath
+        $conv4DestinationPath = $row.CONV4_DestinationFolderPath
+        $conv4FileName = $row.CONV4_FileName
+
+        if ($conv4FileName) {
+            $conv4SourceFile = Join-Path -Path $conv4SourcePath -ChildPath $conv4FileName
+            $conv4DestinationFile = Join-Path -Path $conv4DestinationPath -ChildPath $conv4FileName
+
+            if (Test-Path -Path $conv4SourceFile) {
+                try {
+                    Copy-Item -Path $conv4SourceFile -Destination $conv4DestinationFile -Force
+                    Write-Output "Copied $conv4SourceFile to $conv4DestinationFile"
+                } catch {
+                    Write-Error "Failed to copy $conv4SourceFile to $conv4DestinationFile: $_"
+                }
+            } else {
+                Write-Warning "$conv4SourceFile does not exist."
+            }
         }
     }
 }
