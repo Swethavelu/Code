@@ -33,3 +33,75 @@ if ($csvData[0].PSObject.Properties.Name -contains 'FolderPath' -and $csvData[0]
 } else {
     Write-Warning "Required columns 'FolderPath' and/or 'FileName' not found in the CSV file."
 }
+
+version 2
+# Specify the input CSV file path
+$inputCSVPath = "C:\Path\to\input.csv"
+
+# Specify the default destination path
+$destinationPath = "C:\Destination\"
+
+# Specify paths to the comparison executables and their config files
+$textComparisonExePath = "C:\Path\to\TextComparison.exe"
+$excelComparisonExePath = "C:\Path\to\ExcelComparison.exe"
+$textComparisonConfigPath = "C:\Path\to\TextComparisonConfig.txt"
+$excelComparisonConfigPath = "C:\Path\to\ExcelComparisonConfig.txt"
+
+# Read the CSV file
+$csvData = Import-Csv -Path $inputCSVPath
+
+# Debugging: Display column names
+Write-Host "Column names in CSV file:"
+$csvData[0].PSObject.Properties.Name
+
+# Check if the required columns exist in the CSV data
+if ($csvData[0].PSObject.Properties.Name -contains 'FolderPath' -and $csvData[0].PSObject.Properties.Name -contains 'FileName') {
+    # Iterate through each row in the CSV
+    foreach ($row in $csvData) {
+        $folderPath = $row.FolderPath
+        $fileName = $row.FileName
+
+        # Construct the full file path
+        $filePath = Join-Path -Path $folderPath -ChildPath $fileName
+
+        # Check if the file exists
+        if (Test-Path $filePath -PathType Leaf) {
+            # Copy the file to the destination path
+            $destinationFilePath = Join-Path -Path $destinationPath -ChildPath $fileName
+            Copy-Item -Path $filePath -Destination $destinationFilePath -Force
+
+            # Get file size
+            $fileInfo = Get-Item -Path $destinationFilePath
+            $fileSize = $fileInfo.Length
+
+            # Print the file name and size
+            Write-Host "File copied: $($fileName), Size: $($fileSize) bytes"
+
+            # Determine the file extension and redirect accordingly
+            $fileExtension = [System.IO.Path]::GetExtension($fileName)
+
+            if ($fileExtension -eq ".txt") {
+                # Update text comparison config
+                Add-Content -Path $textComparisonConfigPath -Value "FileName=$($fileName);FilePath=$($destinationFilePath)"
+                # Optionally, run the text comparison executable
+                Start-Process -FilePath $textComparisonExePath -ArgumentList $textComparisonConfigPath
+                Write-Host "Text comparison updated for $($fileName)"
+            }
+            elseif ($fileExtension -eq ".xlsx") {
+                # Update Excel comparison config
+                Add-Content -Path $excelComparisonConfigPath -Value "FileName=$($fileName);FilePath=$($destinationFilePath)"
+                # Optionally, run the Excel comparison executable
+                Start-Process -FilePath $excelComparisonExePath -ArgumentList $excelComparisonConfigPath
+                Write-Host "Excel comparison updated for $($fileName)"
+            }
+            else {
+                Write-Warning "Unsupported file extension: $($fileExtension) for file $($fileName)"
+            }
+        } else {
+            Write-Warning "File $($fileName) does not exist in folder path: $($folderPath)"
+        }
+    }
+} else {
+    Write-Warning "Required columns 'FolderPath' and/or 'FileName' not found in the CSV file."
+}
+
