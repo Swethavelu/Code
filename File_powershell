@@ -1,98 +1,35 @@
-# Define your data table with source and destination folder paths
-$dataTable = @(
-    @{
-        ID = 1
-        Description = "Description1"
-        JobName = "Job1"
-        SourceFolderPath = "C:\SourceFolder1"
-        DestinationFolderPath = "C:\DestinationFolder1"
-        OutputFileName = "OutputFile1.txt"
-        SQL = $true
-        Oracle = $false
-    },
-    @{
-        ID = 2
-        Description = "Description2"
-        JobName = "Job2"
-        SourceFolderPath = "C:\SourceFolder2"
-        DestinationFolderPath = "C:\DestinationFolder2"
-        OutputFileName = "OutputFile2.xlsx"
-        SQL = $false
-        Oracle = $true
-    }
-)
+# Specify the input CSV file path
+$inputCSVPath = "C:\Path\to\input.csv"
 
-# Function to copy files
-function Copy-Files {
-    param (
-        [string]$sourcePath,
-        [string]$destinationPath
-    )
-    Copy-Item -Path $sourcePath -Destination $destinationPath -Force
-}
+# Specify the default destination path
+$destinationPath = "C:\Destination\"
 
-# Function to call text comparison utility
-function Compare-TextFiles {
-    param (
-        [string]$sourcePath,
-        [string]$destinationPath
-    )
-    # Replace with the path to your text comparison utility
-    $textComparisonExe = "C:\Path\To\TextComparison.exe"
-    & $textComparisonExe $sourcePath $destinationPath
-}
+# Read the CSV file
+$csvData = Import-Csv -Path $inputCSVPath
 
-# Function to call Excel comparison utility
-function Compare-ExcelFiles {
-    param (
-        [string]$sourcePath,
-        [string]$destinationPath
-    )
-    # Replace with the path to your Excel comparison utility
-    $excelComparisonExe = "C:\Path\To\ExcelComparison.exe"
-    & $excelComparisonExe $sourcePath $destinationPath
-}
+# Debugging: Display column names
+Write-Host "Column names in CSV file:"
+$csvData[0].PSObject.Properties.Name
 
-# Loop through the data table
-foreach ($row in $dataTable) {
-    $sourceFolderPath = $row.SourceFolderPath
-    $outputFileName = $row.OutputFileName
-    $sourceFilePath = Join-Path -Path $sourceFolderPath -ChildPath $outputFileName
+# Check if the required columns exist in the CSV data
+if ($csvData[0].PSObject.Properties.Name -contains 'FolderPath' -and $csvData[0].PSObject.Properties.Name -contains 'FileName') {
+    # Iterate through each row in the CSV
+    foreach ($row in $csvData) {
+        $folderPath = $row.FolderPath
+        $fileName = $row.FileName
 
-    # Check if the source folder exists
-    if (Test-Path $sourceFolderPath -PathType Container) {
+        # Construct the full file path
+        $filePath = Join-Path -Path $folderPath -ChildPath $fileName
+
         # Check if the file exists
-        if (Test-Path $sourceFilePath -PathType Leaf) {
-            $fileSize = (Get-Item $sourceFilePath).Length
-            Write-Host "File size: $fileSize bytes"
-
-            $destinationFolderPath = $row.DestinationFolderPath
-            if (-not (Test-Path $destinationFolderPath -PathType Container)) {
-                New-Item -Path $destinationFolderPath -ItemType Directory | Out-Null
-            }
-            $destinationFilePath = Join-Path -Path $destinationFolderPath -ChildPath $outputFileName
-
-            # Determine file extension
-            $fileExtension = [System.IO.Path]::GetExtension($sourceFilePath)
-
-            # Perform different actions based on file extension
-            switch -Wildcard ($fileExtension) {
-                ".txt" {
-                    Compare-TextFiles -sourcePath $sourceFilePath -destinationPath $destinationFilePath
-                }
-                ".xlsx" {
-                    Compare-ExcelFiles -sourcePath $sourceFilePath -destinationPath $destinationFilePath
-                }
-                default {
-                    Write-Host "Unsupported file format: $fileExtension"
-                }
-            }
-
-            Write-Host "File copied: $outputFileName"
+        if (Test-Path $filePath -PathType Leaf) {
+            # Copy the file to the destination path
+            Copy-Item -Path $filePath -Destination $destinationPath -Force
+            Write-Host "File $($fileName) copied from $($folderPath) to $($destinationPath)"
         } else {
-            Write-Host "File not found: $sourceFilePath"
+            Write-Warning "File $($fileName) does not exist in folder path: $($folderPath)"
         }
-    } else {
-        Write-Host "Source folder not found: $sourceFolderPath"
     }
+} else {
+    Write-Warning "Required columns 'FolderPath' and/or 'FileName' not found in the CSV file."
 }
