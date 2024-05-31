@@ -291,3 +291,118 @@ if ($csvData[0].PSObject.Properties.Name -contains 'FolderPath' -and $csvData[0]
 } else {
     Write-Warning "Required columns 'FolderPath' and/or 'Output Filename(s)' not found in the CSV file."
 }
+
+version 5
+# Specify the input CSV file path
+$inputCSVPath = "C:\Path\to\input.csv"
+
+# Specify the default destination path
+$destinationPath = "C:\Destination\"
+
+# Specify the business date
+$businessDate = "20240531" # Example: YYYYMMDD format
+
+# Read the CSV file
+$csvData = Import-Csv -Path $inputCSVPath
+
+# Debugging: Display column names
+Write-Host "Column names in CSV file:"
+$csvData[0].PSObject.Properties.Name
+
+# Function to resolve the file name pattern with business date
+function Resolve-FilenamePattern {
+    param (
+        [string]$fileNamePattern,
+        [string]$businessDate
+    )
+    
+    # Replace date placeholder
+    $resolvedFileNamePattern = $fileNamePattern -replace '\[date\|([^\]]+)\]', $businessDate
+    
+    # Replace time placeholder with wildcard
+    $resolvedFileNamePattern = $resolvedFileNamePattern -replace '\[Time\|([^\]]+)\]', '*'
+    
+    return $resolvedFileNamePattern
+}
+
+# Check if the required columns exist in the CSV data
+if ($csvData[0].PSObject.Properties.Name -contains 'FolderPath' -and $csvData[0].PSObject.Properties.Name -contains 'Output Filename(s)') {
+    # Create a list to store updated rows
+    $updatedRows = @()
+
+    # Iterate through each row in the CSV
+    foreach ($row in $csvData) {
+        $folderPath = $row.FolderPath
+        $fileNamePattern = $row.'Output Filename(s)'
+
+        # Initialize default values for the new columns
+        $fileStatus = "File Not Found"
+        $fileSize = 0
+        $fileComparisonStatus = "Data Not Found"
+
+        # Check if the folder path exists
+        if (Test-Path $folderPath -PathType Container) {
+            # Resolve the file name pattern
+            $resolvedFileNamePattern = Resolve-FilenamePattern -fileNamePattern $fileNamePattern -businessDate $businessDate
+
+            # Search for files that match the resolved pattern
+            $matchingFiles = Get-ChildItem -Path $folderPath -Filter $resolvedFileNamePattern
+
+            # Find the latest timestamp file in the folder
+            $latestFile = $matchingFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
+            if ($latestFile) {
+                # Extract the latest timestamp in HHmmss format
+                $latestTimeStamp = $latestFile.LastWriteTime.ToString("HHmmss")
+
+                # Construct the final resolved file name
+                $resolvedFileName = $fileNamePattern -replace '\[date\|([^\]]+)\]', $businessDate
+                $resolvedFileName = $resolvedFileName -replace '\[Time\|([^\]]+)\]', $latestTimeStamp
+
+                # Construct the full file path
+                $filePath = Join-Path -Path $folderPath -ChildPath $resolvedFileName
+
+                # Check if the file exists
+                if (Test-Path $filePath -PathType Leaf) {
+                    # Copy the file to the destination path
+                    $destinationFilePath = Join-Path -Path $destinationPath -ChildPath $resolvedFileName
+                    Copy-Item -Path $filePath -Destination $destinationFilePath -Force
+
+                    # Get file size
+                    $fileInfo = Get-Item -Path $destinationFilePath
+                    $fileSize = [math]::Round($fileInfo.Length / 1KB, 2)
+
+                    # Update file status and comparison status based on file size
+                    if ($fileSize -eq 0) {
+                        $fileComparisonStatus = "Data Not Found"
+                    } elseif ($fileSize -eq 1) {
+                        $fileComparisonStatus = "Only Headers Found"
+                    } else {
+                        $fileComparisonStatus = "File Ready for Comparison"
+                    }
+
+                    $fileStatus = "File Present"
+                } else {
+                    Write-Warning "File $($resolvedFileName) does not exist in folder path: $($folderPath)"
+                }
+            } else {
+                Write-Warning "No files found in folder path: $($folderPath) matching pattern: $($resolvedFileNamePattern)"
+            }
+        } else {
+            Write-Warning "Folder path $($folderPath) does not exist."
+        }
+
+        # Update the row with new column values
+        $row | Add-Member -NotePropertyName "File Status" -NotePropertyValue $fileStatus -Force
+        $row | Add-Member -NotePropertyName "File Size" -NotePropertyValue "$($fileSize) KB" -Force
+        $row | Add-Member -NotePropertyName "File Comparison Status" -NotePropertyValue $fileComparisonStatus -Force
+
+        # Add updated row to the list
+        $updatedRows += $row
+    }
+
+    # Export the updated CSV
+    $updatedRows | Export-Csv -Path $inputCSVPath -NoTypeInformation
+} else {
+    Write-Warning "Required columns 'FolderPath' and/or 'Output Filename(s)' not found in the CSV file."
+}
