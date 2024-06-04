@@ -1,0 +1,55 @@
+# Define the source and destination folders
+$sourceFolder = "C:\SourceFolder"
+$destinationFolder = "C:\DestinationFolder"
+$outputReportPath = "C:\ComparisonReport.html" # Default output HTML report path
+
+# Get a list of web config files in the source folder
+$sourceFiles = Get-ChildItem -Path $sourceFolder -Filter "*.config" -Recurse
+
+# Create an array to store the comparison results
+$results = @()
+
+# Loop through each file in the source folder
+foreach ($file in $sourceFiles) {
+    # Construct the corresponding file path in the destination folder
+    $destinationFilePath = $file.FullName.Replace($sourceFolder, $destinationFolder)
+
+    # Check if the file exists in the destination folder
+    if (Test-Path $destinationFilePath) {
+        # Compare file sizes
+        $sourceFileSize = (Get-Item $file.FullName).Length
+        $destinationFileSize = (Get-Item $destinationFilePath).Length
+        
+        # Compare file contents
+        $sourceFileContent = Get-Content $file.FullName
+        $destinationFileContent = Get-Content $destinationFilePath
+        
+        # Compare file contents and generate the HTML difference report
+        $comparisonReport = Compare-Object $sourceFileContent $destinationFileContent | 
+                            ConvertTo-Html -Fragment |
+                            Out-String
+        
+        # Check if the file contents are identical
+        if ($sourceFileContent -eq $destinationFileContent) {
+            $result = "Matching"
+        } else {
+            $result = "Not Matching"
+        }
+        
+        # Add the comparison result to the results array
+        $results += [PSCustomObject]@{
+            FileName = $file.Name
+            SourceFolder = $file.DirectoryName
+            DestinationFolder = $destinationFilePath | Split-Path -Parent
+            Result = $result
+            ComparisonReport = $comparisonReport
+        }
+    }
+}
+
+# Generate the HTML report
+$htmlReport = $results | ConvertTo-Html -Property FileName, SourceFolder, DestinationFolder, Result, ComparisonReport -Fragment
+
+# Output the HTML report
+$htmlReport | Out-File $outputReportPath
+Write-Output "Comparison report has been saved to: $outputReportPath"
