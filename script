@@ -149,7 +149,7 @@ $htmlReport | Out-File $outputReportPath
 $javascriptCode | Out-File -Append $outputReportPath
 Write-Output "Comparison report has been saved to: $outputReportPath"
 
-version 3
+version 4
 # Define the source and destination folders
 $sourceFolder = "C:\SourceFolder"
 $destinationFolder = "C:\DestinationFolder"
@@ -380,3 +380,6 @@ $htmlReport = @"
 # Output the HTML report
 $htmlReport | Out-File $outputReportPath
 Write-Output "Comparison report has been saved to: $outputReportPath"
+
+version 5
+e comparison report as a hyperlink, and when clicked, it will display a dialog box with a side-by-side difference report in a table, with mismatching lines highlighted in red.
