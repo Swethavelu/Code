@@ -382,12 +382,64 @@ $htmlReport | Out-File $outputReportPath
 Write-Output "Comparison report has been saved to: $outputReportPath"
 
 version 5
-#... (rest of the script remains the same)
+# Define the source and destination folders
+$sourceFolder = "C:\SourceFolder"
+$destinationFolder = "C:\DestinationFolder"
+$outputReportPath = "C:\ComparisonReport.html" # Default output HTML report path
 
-# Create a HTML link to the side-by-side difference report
-$comparisonReportLink = "<a href='#' onclick='showDiffReport(this)' data-diff-report='$($diffReport | ConvertTo-Html -Fragment -Property LineNumber, SourceLine, DestinationLine | Out-String)'>View Difference Report</a>"
+# Get a list of web config files in the source folder
+$sourceFiles = Get-ChildItem -Path $sourceFolder -Filter "*.config" -Recurse
 
-#... (rest of the script remains the same)
+# Create an array to store the comparison results
+$results = @()
+
+# Loop through each file in the source folder
+foreach ($file in $sourceFiles) {
+    # Construct the corresponding file path in the destination folder
+    $destinationFilePath = $file.FullName.Replace($sourceFolder, $destinationFolder)
+
+    # Check if the file exists in the destination folder
+    if (Test-Path $destinationFilePath) {
+        # Compare file sizes
+        $sourceFileSize = (Get-Item $file.FullName).Length
+        $destinationFileSize = (Get-Item $destinationFilePath).Length
+        
+        # Compare file contents
+        $sourceFileContent = Get-Content $file.FullName
+        $destinationFileContent = Get-Content $destinationFilePath
+        
+        # Compare file contents and generate the HTML difference report
+        $diffReport = @()
+        for ($i = 0; $i -lt $sourceFileContent.Count; $i++) {
+            if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
+                $diffReport += [PSCustomObject]@{
+                    LineNumber = $i + 1
+                    SourceLine = $sourceFileContent[$i]
+                    DestinationLine = $destinationFileContent[$i]
+                }
+            }
+        }
+        
+        # Create a HTML link to the side-by-side difference report
+        $comparisonReportLink = "<a href='#' onclick='showDiffReport(this)' data-diff-report='$($diffReport | ConvertTo-Html -Fragment -Property LineNumber, SourceLine, DestinationLine | Out-String)'>View Difference Report</a>"
+        
+        # Check if the file contents are identical
+        if ($sourceFileContent -eq $destinationFileContent) {
+            $result = "Matching"
+        } else {
+            $result = "Not Matching"
+        }
+        
+        # Add the comparison result to the results array
+        $results += [PSCustomObject]@{
+            FileName = $file.Name
+            SourceFolder = $file.DirectoryName
+            DestinationFolder = $destinationFilePath | Split-Path -Parent
+            Result = $result
+            ComparisonReportLink = $comparisonReportLink
+        }
+    }
+}
 
 # Generate the HTML report
 $htmlReport = @"
@@ -402,7 +454,7 @@ $htmlReport = @"
             border: 1px solid black;
             padding: 5px;
         }
-       .mismatch {
+        .mismatch {
             background-color: #FF0000; /* red background for mismatching lines */
         }
     </style>
