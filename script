@@ -683,13 +683,13 @@ function Compare-Nodes {
 
     # Compare node names
     if ($node1.Name -ne $node2.Name) {
-        $mismatches += "Node name mismatch at $path: '$($node1.Name)' vs '$($node2.Name)'"
+        $mismatches += "Node name mismatch at $path: '${node1.Name}' vs '${node2.Name}'"
     }
 
     # Compare attributes
     foreach ($attr in $node1.Attributes) {
         if ($node2.Attributes[$attr.Name].Value -ne $attr.Value) {
-            $mismatches += "Attribute mismatch at $path/@$($attr.Name): '$($attr.Value)' vs '$($node2.Attributes[$attr.Name].Value)'"
+            $mismatches += "Attribute mismatch at $path/@${attr.Name}: '${attr.Value}' vs '${node2.Attributes[$attr.Name].Value}'"
         }
     }
     
@@ -700,13 +700,13 @@ function Compare-Nodes {
     $maxCount = [Math]::Max($childNodes1.Count, $childNodes2.Count)
     for ($i = 0; $i -lt $maxCount; $i++) {
         if ($i -lt $childNodes1.Count -and $i -lt $childNodes2.Count) {
-            $mismatches += Compare-Nodes -node1 $childNodes1[$i] -node2 $childNodes2[$i] -path "$path/$($childNodes1[$i].Name)"
+            $mismatches += Compare-Nodes -node1 $childNodes1[$i] -node2 $childNodes2[$i] -path "$path/${childNodes1[$i].Name}"
         }
         elseif ($i -lt $childNodes1.Count) {
-            $mismatches += "Extra node in File 1 at $path: '$($childNodes1[$i].OuterXml)'"
+            $mismatches += "Extra node in File 1 at $path: '${childNodes1[$i].OuterXml}'"
         }
         elseif ($i -lt $childNodes2.Count) {
-            $mismatches += "Extra node in File 2 at $path: '$($childNodes2[$i].OuterXml)'"
+            $mismatches += "Extra node in File 2 at $path: '${childNodes2[$i].OuterXml}'"
         }
     }
 
