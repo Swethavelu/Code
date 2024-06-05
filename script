@@ -526,14 +526,21 @@ $htmlContent = @"
     <style>
         body { font-family: Arial, sans-serif; }
         .mismatch { color: red; }
-        .line { margin-bottom: 10px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
     </style>
 </head>
 <body>
     <h1>File Comparison Report</h1>
     <h2>File 1: $file1</h2>
     <h2>File 2: $file2</h2>
-    <div>
+    <table>
+        <tr>
+            <th>Line Number</th>
+            <th>File 1</th>
+            <th>File 2</th>
+        </tr>
 "@
 
 # Loop through each line up to the maximum number of lines
@@ -546,18 +553,18 @@ for ($i = 0; $i -lt $maxLines; $i++) {
     if ($line1 -ne $line2) {
         # Append mismatching lines to the HTML content
         $htmlContent += @"
-        <div class='line'>
-            <strong>Line $lineNumber mismatch:</strong>
-            <div class='mismatch'>File 1: $line1</div>
-            <div class='mismatch'>File 2: $line2</div>
-        </div>
+        <tr>
+            <td>$lineNumber</td>
+            <td class='mismatch'>$( [System.Web.HttpUtility]::HtmlEncode($line1) )</td>
+            <td class='mismatch'>$( [System.Web.HttpUtility]::HtmlEncode($line2) )</td>
+        </tr>
 "@
     }
 }
 
 # Finalize HTML content
 $htmlContent += @"
-    </div>
+    </table>
     <footer>
         <p>Comparison complete.</p>
     </footer>
