@@ -763,3 +763,111 @@ $htmlContent += @"
 Set-Content -Path $outputReport -Value $htmlContent -Encoding UTF8
 
 Write-Host "HTML report generated at: $outputReport"
+
+
+
+
+_----------
+# File paths for the two XML files to compare
+$file1 = "C:\path\to\file1.xml"
+$file2 = "C:\path\to\file2.xml"
+
+# Output HTML report file path
+$outputReport = "C:\path\to\ComparisonReport.html"
+
+# Load the XML files
+[xml]$xml1 = Get-Content -Path $file1
+[xml]$xml2 = Get-Content -Path $file2
+
+# Function to compare XML nodes recursively
+function Compare-Nodes {
+    param (
+        [xml]$node1,
+        [xml]$node2,
+        [string]$path = "/"
+    )
+    
+    $mismatches = @()
+
+    # Compare node names
+    if ($node1.Name -ne $node2.Name) {
+        $mismatches += "Node name mismatch at $path: '${node1.Name}' vs '${node2.Name}'"
+    }
+
+    # Compare attributes
+    foreach ($attr in $node1.Attributes) {
+        if ($node2.Attributes[$attr.Name].Value -ne $attr.Value) {
+            $mismatches += "Attribute mismatch at $path/@${attr.Name}: '${attr.Value}' vs '${node2.Attributes[$attr.Name].Value}'"
+        }
+    }
+    
+    # Compare child nodes
+    $childNodes1 = $node1.ChildNodes | Where-Object { $_.NodeType -eq "Element" }
+    $childNodes2 = $node2.ChildNodes | Where-Object { $_.NodeType -eq "Element" }
+    
+    $maxCount = [Math]::Max($childNodes1.Count, $childNodes2.Count)
+    for ($i = 0; $i -lt $maxCount; $i++) {
+        if ($i -lt $childNodes1.Count -and $i -lt $childNodes2.Count) {
+            $mismatches += Compare-Nodes -node1 $childNodes1[$i] -node2 $childNodes2[$i] -path "$path/${childNodes1[$i].Name}"
+        }
+        elseif ($i -lt $childNodes1.Count) {
+            $mismatches += "Extra node in File 1 at $path: '${childNodes1[$i].OuterXml}'"
+        }
+        elseif ($i -lt $childNodes2.Count) {
+            $mismatches += "Extra node in File 2 at $path: '${childNodes2[$i].OuterXml}'"
+        }
+    }
+
+    return $mismatches
+}
+
+# Start comparing the root nodes
+$mismatches = Compare-Nodes -node1 $xml1.DocumentElement -node2 $xml2.DocumentElement
+
+# Initialize HTML content
+$htmlContent = @"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>XML Comparison Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .mismatch { color: red; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>XML Comparison Report</h1>
+    <h2>File 1: $file1</h2>
+    <h2>File 2: $file2</h2>
+    <table>
+        <tr>
+            <th>Mismatch</th>
+        </tr>
+"@
+
+# Add mismatches to the HTML content
+foreach ($mismatch in $mismatches) {
+    $htmlContent += @"
+        <tr>
+            <td class='mismatch'>$mismatch</td>
+        </tr>
+"@
+}
+
+# Finalize HTML content
+$htmlContent += @"
+    </table>
+    <footer>
+        <p>Comparison complete.</p>
+    </footer>
+</body>
+</html>
+"@
+
+# Save the HTML content to the output file
+Set-Content -Path $outputReport -Value $htmlContent -Encoding UTF8
+
+Write-Host "HTML report generated at: $outputReport"
