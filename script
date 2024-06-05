@@ -382,4 +382,69 @@ $htmlReport | Out-File $outputReportPath
 Write-Output "Comparison report has been saved to: $outputReportPath"
 
 version 5
-e comparison report as a hyperlink, and when clicked, it will display a dialog box with a side-by-side difference report in a table, with mismatching lines highlighted in red.
+#... (rest of the script remains the same)
+
+# Create a HTML link to the side-by-side difference report
+$comparisonReportLink = "<a href='#' onclick='showDiffReport(this)' data-diff-report='$($diffReport | ConvertTo-Html -Fragment -Property LineNumber, SourceLine, DestinationLine | Out-String)'>View Difference Report</a>"
+
+#... (rest of the script remains the same)
+
+# Generate the HTML report
+$htmlReport = @"
+<html>
+<head>
+    <title>Comparison Report</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 5px;
+        }
+       .mismatch {
+            background-color: #FF0000; /* red background for mismatching lines */
+        }
+    </style>
+</head>
+<body>
+    <h1>Comparison Report</h1>
+    <table>
+        <tr>
+            <th>FileName</th>
+            <th>SourceFolder</th>
+            <th>DestinationFolder</th>
+            <th>Result</th>
+            <th>Comparison Report</th>
+        </tr>
+"@ + ($results | ConvertTo-Html -Fragment) + @"
+    </table>
+    <script>
+        function showDiffReport(element) {
+            var diffReport = element.getAttribute('data-diff-report');
+            var diffReportHtml = "<table border='1'>";
+            diffReportHtml += "<tr><th>Line Number</th><th>Source Line</th><th>Destination Line</th></tr>";
+            diffReport.split('<br>').forEach(function(line) {
+                var mismatch = line.indexOf('<td>') > -1;
+                diffReportHtml += "<tr" + (mismatch? " class='mismatch'" : "") + ">" + line + "</tr>";
+            });
+            diffReportHtml += "</table>";
+            var diffReportDialog = document.createElement('div');
+            diffReportDialog.innerHTML = diffReportHtml;
+            diffReportDialog.style.position = 'absolute';
+            diffReportDialog.style.top = '50%';
+            diffReportDialog.style.left = '50%';
+            diffReportDialog.style.transform = 'translate(-50%, -50%)';
+            diffReportDialog.style.background = 'white';
+            diffReportDialog.style.padding = '10px';
+            diffReportDialog.style.border = '1px solid black';
+            document.body.appendChild(diffReportDialog);
+        }
+    </script>
+</body>
+</html>
+"@
+
+# Output the HTML report
+$htmlReport | Out-File $outputReportPath
+Write-Output "Comparison report has been saved to: $outputReportPath"
