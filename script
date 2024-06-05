@@ -148,3 +148,119 @@ $javascriptCode = @"
 $htmlReport | Out-File $outputReportPath
 $javascriptCode | Out-File -Append $outputReportPath
 Write-Output "Comparison report has been saved to: $outputReportPath"
+
+version 3
+# Define the source and destination folders
+$sourceFolder = "C:\SourceFolder"
+$destinationFolder = "C:\DestinationFolder"
+$outputReportPath = "C:\ComparisonReport.html" # Default output HTML report path
+
+# Get a list of web config files in the source folder
+$sourceFiles = Get-ChildItem -Path $sourceFolder -Filter "*.config" -Recurse
+
+# Create an array to store the comparison results
+$results = @()
+
+# Loop through each file in the source folder
+foreach ($file in $sourceFiles) {
+    # Construct the corresponding file path in the destination folder
+    $destinationFilePath = $file.FullName.Replace($sourceFolder, $destinationFolder)
+
+    # Check if the file exists in the destination folder
+    if (Test-Path $destinationFilePath) {
+        # Compare file sizes
+        $sourceFileSize = (Get-Item $file.FullName).Length
+        $destinationFileSize = (Get-Item $destinationFilePath).Length
+        
+        # Compare file contents
+        $sourceFileContent = Get-Content $file.FullName
+        $destinationFileContent = Get-Content $destinationFilePath
+        
+        # Compare file contents and generate the HTML difference report
+        $diffReport = @()
+        for ($i = 0; $i -lt $sourceFileContent.Count; $i++) {
+            if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
+                $diffReport += [PSCustomObject]@{
+                    LineNumber = $i + 1
+                    SourceLine = $sourceFileContent[$i]
+                    DestinationLine = $destinationFileContent[$i]
+                }
+            }
+        }
+        
+        # Create a HTML link to the side-by-side difference report
+        $comparisonReportLink = "<a href='#' onclick='showDiffReport(this)' data-diff-report='$($diffReport | ConvertTo-Html -Fragment -Property LineNumber, SourceLine, DestinationLine | Out-String)'>View Difference Report</a>"
+        
+        # Check if the file contents are identical
+        if ($sourceFileContent -eq $destinationFileContent) {
+            $result = "Matching"
+        } else {
+            $result = "Not Matching"
+        }
+        
+        # Add the comparison result to the results array
+        $results += [PSCustomObject]@{
+            FileName = $file.Name
+            SourceFolder = $file.DirectoryName
+            DestinationFolder = $destinationFilePath | Split-Path -Parent
+            Result = $result
+            ComparisonReportLink = $comparisonReportLink
+        }
+    }
+}
+
+# Generate the HTML report
+$htmlReport = @"
+<html>
+<head>
+    <title>Comparison Report</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Comparison Report</h1>
+    <table>
+        <tr>
+            <th>FileName</th>
+            <th>SourceFolder</th>
+            <th>DestinationFolder</th>
+            <th>Result</th>
+            <th>Comparison Report</th>
+        </tr>
+"@ + ($results | ConvertTo-Html -Fragment) + @"
+    </table>
+    <script>
+        function showDiffReport(element) {
+            var diffReport = element.getAttribute('data-diff-report');
+            var diffReportHtml = "<table border='1'>";
+            diffReportHtml += "<tr><th>Line Number</th><th>Source Line</th><th>Destination Line</th></tr>";
+            diffReport.split('<br>').forEach(function(line) {
+                diffReportHtml += "<tr>" + line + "</tr>";
+            });
+            diffReportHtml += "</table>";
+            var diffReportDialog = document.createElement('div');
+            diffReportDialog.innerHTML = diffReportHtml;
+            diffReportDialog.style.position = 'absolute';
+            diffReportDialog.style.top = '50%';
+            diffReportDialog.style.left = '50%';
+            diffReportDialog.style.transform = 'translate(-50%, -50%)';
+            diffReportDialog.style.background = 'white';
+            diffReportDialog.style.padding = '10px';
+            diffReportDialog.style.border = '1px solid black';
+            document.body.appendChild(diffReportDialog);
+        }
+    </script>
+</body>
+</html>
+"@
+
+# Output the HTML report
+$htmlReport | Out-File $outputReportPath
+Write-Output "Comparison report has been saved to: $outputReportPath"
