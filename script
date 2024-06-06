@@ -1273,7 +1273,6 @@ updated report
 # Define the source and destination folders
 $sourceFolder = "C:\SourceFolder"
 $destinationFolder = "C:\DestinationFolder"
-$outputReportPath = "C:\ComparisonReport.html" # Default output HTML report path
 
 # Get a list of web config files in the source folder
 $sourceFiles = Get-ChildItem -Path $sourceFolder -Filter "*.config" -Recurse
@@ -1299,8 +1298,8 @@ foreach ($file in $sourceFiles) {
         $mismatchDestinationLines = @()
         for ($i = 0; $i -lt $sourceFileContent.Count; $i++) {
             if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
-                $mismatchSourceLines += ($i + 1).ToString() + ". " + $sourceFileContent[$i] + "`n`n"
-                $mismatchDestinationLines += ($i + 1).ToString() + ". " + $destinationFileContent[$i] + "`n`n"
+                $mismatchSourceLines += ($i + 1).ToString() + ". " + $sourceFileContent[$i]
+                $mismatchDestinationLines += ($i + 1).ToString() + ". " + $destinationFileContent[$i]
             }
         }
         
@@ -1323,66 +1322,5 @@ foreach ($file in $sourceFiles) {
     }
 }
 
-# Generate the HTML report
-$htmlReport = @"
-<html>
-<head>
-    <title>Comparison Report</title>
-    <style>
-        table {
-            border-collapse: collapse;
-        }
-        th, td {
-            border: 1px solid black;
-            padding: 5px;
-        }
-    </style>
-</head>
-<body>
-    <h1>Comparison Report</h1>
-    <table>
-        <tr>
-            <th>FileName</th>
-            <th>SourceFolder</th>
-            <th>DestinationFolder</th>
-            <th>Result</th>
-            <th>Source Mismatch Lines</th>
-            <th>Destination Mismatch Lines</th>
-        </tr>
-"@
-
-# Convert the results to HTML and add blank lines between each mismatch
-foreach ($result in $results) {
-    $htmlReport += "<tr><td>$($result.FileName)</td>"
-    $htmlReport += "<td>$($result.SourceFolder)</td>"
-    $htmlReport += "<td>$($result.DestinationFolder)</td>"
-    $htmlReport += "<td>$($result.Result)</td>"
-    
-    # Add blank lines between mismatch lines for better visibility
-    $sourceMismatchLines = $result.SourceMismatchLines -split "`n`n"
-    $destinationMismatchLines = $result.DestinationMismatchLines -split "`n`n"
-    
-    $htmlReport += "<td>"
-    foreach ($line in $sourceMismatchLines) {
-        $htmlReport += "$line`n`n"
-    }
-    $htmlReport += "</td>"
-    
-    $htmlReport += "<td>"
-    foreach ($line in $destinationMismatchLines) {
-        $htmlReport += "$line`n`n"
-    }
-    $htmlReport += "</td>"
-    
-    $htmlReport += "</tr>"
-}
-
-$htmlReport += @"
-    </table>
-</body>
-</html>
-"@
-
-# Output the HTML report
-$htmlReport | Out-File $outputReportPath
-Write-Output "Comparison report has been saved to: $outputReportPath"
+# Print the comparison results table
+$results | Format-Table -AutoSize
