@@ -1094,40 +1094,6 @@ $sourceFolder = "C:\SourceFolder"
 $destinationFolder = "C:\DestinationFolder"
 $outputReportPath = "C:\ComparisonReport.html" # Default output HTML report path
 
-# Function to highlight mismatching words
-function Highlight-MismatchWords {
-    param (
-        [string]$sourceLine,
-        [string]$destinationLine
-    )
-
-    $highlightedSourceLine = ""
-    $highlightedDestinationLine = ""
-
-    $sourceWords = $sourceLine -split '\s+'
-    $destinationWords = $destinationLine -split '\s+'
-
-    $wordCount = [Math]::Max($sourceWords.Count, $destinationWords.Count)
-
-    for ($i = 0; $i -lt $wordCount; $i++) {
-        $sourceWord = if ($i -lt $sourceWords.Count) { $sourceWords[$i] } else { "" }
-        $destinationWord = if ($i -lt $destinationWords.Count) { $destinationWords[$i] } else { "" }
-
-        if ($sourceWord -ne $destinationWord) {
-            $highlightedSourceLine += "<span style='color:red'>$sourceWord </span>"
-            $highlightedDestinationLine += "<span style='color:red'>$destinationWord </span>"
-        } else {
-            $highlightedSourceLine += "$sourceWord "
-            $highlightedDestinationLine += "$destinationWord "
-        }
-    }
-
-    return @{
-        Source = $highlightedSourceLine
-        Destination = $highlightedDestinationLine
-    }
-}
-
 # Get a list of web config files in the source folder
 $sourceFiles = Get-ChildItem -Path $sourceFolder -Filter "*.config" -Recurse
 
@@ -1150,12 +1116,8 @@ foreach ($file in $sourceFiles) {
         $mismatchDestinationLines = @()
         for ($i = 0; $i -lt $sourceFileContent.Count; $i++) {
             if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
-                $highlightedLines = Highlight-MismatchWords -sourceLine $sourceFileContent[$i] -destinationLine $destinationFileContent[$i]
-                $mismatchSourceLines += $highlightedLines.Source
-                $mismatchDestinationLines += $highlightedLines.Destination
-                # Add newline break between differences
-                $mismatchSourceLines += "<br>"
-                $mismatchDestinationLines += "<br>"
+                $mismatchSourceLines += $sourceFileContent[$i]
+                $mismatchDestinationLines += $destinationFileContent[$i]
             }
         }
         
@@ -1172,8 +1134,8 @@ foreach ($file in $sourceFiles) {
             SourceFolder = $file.DirectoryName
             DestinationFolder = $destinationFilePath | Split-Path -Parent
             Result = $result
-            SourceMismatchLines = $mismatchSourceLines -join "`n"
-            DestinationMismatchLines = $mismatchDestinationLines -join "`n"
+            SourceMismatchLines = $mismatchSourceLines -join "<br>"
+            DestinationMismatchLines = $mismatchDestinationLines -join "<br>"
         }
     }
 }
