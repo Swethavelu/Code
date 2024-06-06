@@ -1101,28 +1101,30 @@ function Highlight-MismatchWords {
         [string]$destinationLine
     )
 
-    $sourceWords = $sourceLine -split ' '
-    $destinationWords = $destinationLine -split ' '
-    $highlightedSourceLine = @()
-    $highlightedDestinationLine = @()
+    $highlightedSourceLine = ""
+    $highlightedDestinationLine = ""
 
-    for ($i = 0; $i -lt [Math]::Max($sourceWords.Count, $destinationWords.Count); $i++) {
-        if ($i -ge $sourceWords.Count) {
-            $highlightedDestinationLine += "<span style='color:red; font-weight:bold'>$($destinationWords[$i])</span>"
-        } elseif ($i -ge $destinationWords.Count) {
-            $highlightedSourceLine += "<span style='color:red; font-weight:bold'>$($sourceWords[$i])</span>"
-        } elseif ($sourceWords[$i] -ne $destinationWords[$i]) {
-            $highlightedSourceLine += "<span style='color:red; font-weight:bold'>$($sourceWords[$i])</span>"
-            $highlightedDestinationLine += "<span style='color:red; font-weight:bold'>$($destinationWords[$i])</span>"
+    $sourceWords = $sourceLine -split '\s+'
+    $destinationWords = $destinationLine -split '\s+'
+
+    $wordCount = [Math]::Max($sourceWords.Count, $destinationWords.Count)
+
+    for ($i = 0; $i -lt $wordCount; $i++) {
+        $sourceWord = if ($i -lt $sourceWords.Count) { $sourceWords[$i] } else { "" }
+        $destinationWord = if ($i -lt $destinationWords.Count) { $destinationWords[$i] } else { "" }
+
+        if ($sourceWord -ne $destinationWord) {
+            $highlightedSourceLine += "<span style='color:red'>$sourceWord </span>"
+            $highlightedDestinationLine += "<span style='color:red'>$destinationWord </span>"
         } else {
-            $highlightedSourceLine += $sourceWords[$i]
-            $highlightedDestinationLine += $destinationWords[$i]
+            $highlightedSourceLine += "$sourceWord "
+            $highlightedDestinationLine += "$destinationWord "
         }
     }
 
     return @{
-        Source = $highlightedSourceLine -join ' '
-        Destination = $highlightedDestinationLine -join ' '
+        Source = $highlightedSourceLine
+        Destination = $highlightedDestinationLine
     }
 }
 
