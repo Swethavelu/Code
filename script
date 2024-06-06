@@ -1151,6 +1151,9 @@ foreach ($file in $sourceFiles) {
                 $highlightedLines = Highlight-MismatchWords -sourceLine $sourceFileContent[$i] -destinationLine $destinationFileContent[$i]
                 $mismatchSourceLines += $highlightedLines.Source
                 $mismatchDestinationLines += $highlightedLines.Destination
+                # Add newline break between differences
+                $mismatchSourceLines += "<br>"
+                $mismatchDestinationLines += "<br>"
             }
         }
         
