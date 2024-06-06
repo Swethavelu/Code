@@ -898,9 +898,9 @@ $htmlContent = @"
         .mismatch { color: red; }
         .line { margin-bottom: 10px; }
         table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; vertical-align: top; }
         th { background-color: #f2f2f2; }
-        code { display: block; white-space: pre-wrap; word-wrap: break-word; }
+        td { white-space: pre-wrap; word-wrap: break-word; }
     </style>
 </head>
 <body>
@@ -915,11 +915,19 @@ $htmlContent = @"
         </tr>
 "@
 
+# Function to escape HTML entities
+function EscapeHtml {
+    param (
+        [string]$input
+    )
+    return $input.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("`"", "&quot;").Replace("'", "&#39;")
+}
+
 # Loop through each line up to the maximum number of lines
 for ($i = 0; $i -lt $maxLines; $i++) {
     $lineNumber = $i + 1
-    $line1 = if ($i -lt $content1.Length) { $content1[$i] } else { "" }
-    $line2 = if ($i -lt $content2.Length) { $content2[$i] } else { "" }
+    $line1 = if ($i -lt $content1.Length) { EscapeHtml $content1[$i] } else { "" }
+    $line2 = if ($i -lt $content2.Length) { EscapeHtml $content2[$i] } else { "" }
     
     # Compare the lines
     if ($line1 -ne $line2) {
@@ -927,8 +935,8 @@ for ($i = 0; $i -lt $maxLines; $i++) {
         $htmlContent += @"
         <tr>
             <td>$lineNumber</td>
-            <td class='mismatch'><code>$line1</code></td>
-            <td class='mismatch'><code>$line2</code></td>
+            <td class='mismatch'>$line1</td>
+            <td class='mismatch'>$line2</td>
         </tr>
 "@
     }
