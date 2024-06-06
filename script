@@ -957,3 +957,50 @@ Set-Content -Path $outputReport -Value $htmlContent -Encoding UTF8
 
 Write-Host "HTML report generated at: $outputReport"
 
+new csv
+# File paths for the two web.config files to compare
+$file1 = "C:\path\to\web1.config"
+$file2 = "C:\path\to\web2.config"
+
+# Output CSV report file path
+$outputReport = "C:\path\to\ComparisonReport.csv"
+
+# Read the files into arrays
+$content1 = Get-Content -Path $file1
+$content2 = Get-Content -Path $file2
+
+# Find the maximum number of lines in either file
+$maxLines = [Math]::Max($content1.Length, $content2.Length)
+
+# Initialize an array to store the comparison results
+$comparisonResults = @()
+
+# Function to escape HTML entities (if needed)
+function EscapeHtml {
+    param (
+        [string]$input
+    )
+    return $input.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("`"", "&quot;").Replace("'", "&#39;")
+}
+
+# Loop through each line up to the maximum number of lines
+for ($i = 0; $i -lt $maxLines; $i++) {
+    $lineNumber = $i + 1
+    $line1 = if ($i -lt $content1.Length) { EscapeHtml $content1[$i] } else { "" }
+    $line2 = if ($i -lt $content2.Length) { EscapeHtml $content2[$i] } else { "" }
+    
+    # Compare the lines
+    if ($line1 -ne $line2) {
+        # Append mismatching lines to the results array
+        $comparisonResults += [PSCustomObject]@{
+            LineNumber = $lineNumber
+            File1      = $line1
+            File2      = $line2
+        }
+    }
+}
+
+# Export the comparison results to a CSV file
+$comparisonResults | Export-Csv -Path $outputReport -NoTypeInformation
+
+Write-Host "CSV report generated at: $outputReport"
