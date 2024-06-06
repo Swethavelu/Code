@@ -1130,25 +1130,20 @@ foreach ($file in $sourceFiles) {
         $destinationFileContent = Get-Content $destinationFilePath
         
         # Compare file contents and generate the HTML difference report
-        $diffReport = @()
+        $mismatchSourceLines = @()
+        $mismatchDestinationLines = @()
         for ($i = 0; $i -lt $sourceFileContent.Count; $i++) {
             if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
-                $diffReport += [PSCustomObject]@{
-                    LineNumber = $i + 1
-                    SourceLine = "[$($i + 1)] $($sourceFileContent[$i])"
-                    DestinationLine = "[$($i + 1)] $($destinationFileContent[$i])"
-                }
+                $mismatchSourceLines += "[$($i + 1). $($sourceFileContent[$i])]"
+                $mismatchDestinationLines += "[$($i + 1). $($destinationFileContent[$i])]"
                 # Add an empty line for spacing
-                $diffReport += [PSCustomObject]@{
-                    LineNumber = ""
-                    SourceLine = ""
-                    DestinationLine = ""
-                }
+                $mismatchSourceLines += ""
+                $mismatchDestinationLines += ""
             }
         }
         
         # Check if the file contents are identical
-        if ($diffReport.Count -eq 0) {
+        if ($mismatchSourceLines.Count -eq 0) {
             $result = "Matching"
         } else {
             $result = "Not Matching"
@@ -1160,7 +1155,8 @@ foreach ($file in $sourceFiles) {
             SourceFolder = $file.DirectoryName
             DestinationFolder = $destinationFilePath | Split-Path -Parent
             Result = $result
-            ComparisonReport = $diffReport
+            SourceMismatchLines = $mismatchSourceLines -join "`n"
+            DestinationMismatchLines = $mismatchDestinationLines -join "`n"
         }
     }
 }
@@ -1191,27 +1187,12 @@ $htmlReport = @"
             <th>SourceFolder</th>
             <th>DestinationFolder</th>
             <th>Result</th>
-            <th>Comparison Report</th>
+            <th>Source Mismatch Lines</th>
+            <th>Destination Mismatch Lines</th>
         </tr>
 "@ + ($results | ForEach-Object {
-    $comparisonReportHtml = "<table border='1'>";
-    $comparisonReportHtml += "<tr><th>Line Number</th><th>Source Line</th><th>Destination Line</th></tr>";
-    $_.ComparisonReport | ForEach-Object {
-        if ($_.LineNumber -ne "") {
-            $comparisonReportHtml += "<tr>";
-            $comparisonReportHtml += "<td>$($_.LineNumber)</td>";
-            $comparisonReportHtml += "<td>$($_.SourceLine)</td>";
-            $comparisonReportHtml += "<td>$($_.DestinationLine)</td>";
-            $comparisonReportHtml += "</tr>";
-        } else {
-            $comparisonReportHtml += "<tr>";
-            $comparisonReportHtml += "<td colspan='3'>&nbsp;</td>"; # Add an empty line for spacing
-            $comparisonReportHtml += "</tr>";
-        }
-    }
-    $comparisonReportHtml += "</table>";
-    "<tr><td>$($_.FileName)</td><td>$($_.SourceFolder)</td><td>$($_.DestinationFolder)</td><td>$($_.Result)</td><td>$comparisonReportHtml</td></tr>";
-}) + @"
+    "<tr><td>$($_.FileName)</td><td>$($_.SourceFolder)</td><td>$($_.DestinationFolder)</td><td>$($_.Result)</td><td><pre>$($_.SourceMismatchLines)</pre></td><td><pre>$($_.DestinationMismatchLines)</pre></td></tr>"
+}) -join "`n" + @"
     </table>
 </body>
 </html>
