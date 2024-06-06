@@ -1118,8 +1118,8 @@ foreach ($file in $sourceFiles) {
         $mismatchDestinationLines = @()
         for ($i = 0; $i -lt $sourceFileContent.Count; $i++) {
             if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
-                $mismatchSourceLines += $sourceFileContent[$i]
-                $mismatchDestinationLines += $destinationFileContent[$i]
+                $mismatchSourceLines += $sourceFileContent[$i] + "`n"
+                $mismatchDestinationLines += $destinationFileContent[$i] + "`n"
             }
         }
         
