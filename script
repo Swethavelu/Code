@@ -969,25 +969,17 @@ $outputReport = "C:\path\to\ComparisonReport.csv"
 $content1 = Get-Content -Path $file1
 $content2 = Get-Content -Path $file2
 
-# Find the maximum number of lines in either file
-$maxLines = [Math]::Max($content1.Length, $content2.Length)
-
 # Initialize an array to store the comparison results
 $comparisonResults = @()
 
-# Function to escape HTML entities (if needed)
-function EscapeHtml {
-    param (
-        [string]$input
-    )
-    return $input.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("`"", "&quot;").Replace("'", "&#39;")
-}
+# Find the maximum number of lines in either file
+$maxLines = [Math]::Max($content1.Length, $content2.Length)
 
 # Loop through each line up to the maximum number of lines
 for ($i = 0; $i -lt $maxLines; $i++) {
     $lineNumber = $i + 1
-    $line1 = if ($i -lt $content1.Length) { EscapeHtml $content1[$i] } else { "" }
-    $line2 = if ($i -lt $content2.Length) { EscapeHtml $content2[$i] } else { "" }
+    $line1 = if ($i -lt $content1.Length) { $content1[$i] } else { "" }
+    $line2 = if ($i -lt $content2.Length) { $content2[$i] } else { "" }
     
     # Compare the lines
     if ($line1 -ne $line2) {
@@ -1004,3 +996,4 @@ for ($i = 0; $i -lt $maxLines; $i++) {
 $comparisonResults | Export-Csv -Path $outputReport -NoTypeInformation
 
 Write-Host "CSV report generated at: $outputReport"
+
