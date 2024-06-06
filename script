@@ -1108,12 +1108,12 @@ function Highlight-MismatchWords {
 
     for ($i = 0; $i -lt [Math]::Max($sourceWords.Count, $destinationWords.Count); $i++) {
         if ($i -ge $sourceWords.Count) {
-            $highlightedDestinationLine += "<b><span style='color:red'>$($destinationWords[$i])</span></b>"
+            $highlightedDestinationLine += "<span style='color:red; font-weight:bold'>$($destinationWords[$i])</span>"
         } elseif ($i -ge $destinationWords.Count) {
-            $highlightedSourceLine += "<b><span style='color:red'>$($sourceWords[$i])</span></b>"
+            $highlightedSourceLine += "<span style='color:red; font-weight:bold'>$($sourceWords[$i])</span>"
         } elseif ($sourceWords[$i] -ne $destinationWords[$i]) {
-            $highlightedSourceLine += "<b><span style='color:red'>$($sourceWords[$i])</span></b>"
-            $highlightedDestinationLine += "<b><span style='color:red'>$($destinationWords[$i])</span></b>"
+            $highlightedSourceLine += "<span style='color:red; font-weight:bold'>$($sourceWords[$i])</span>"
+            $highlightedDestinationLine += "<span style='color:red; font-weight:bold'>$($destinationWords[$i])</span>"
         } else {
             $highlightedSourceLine += $sourceWords[$i]
             $highlightedDestinationLine += $destinationWords[$i]
