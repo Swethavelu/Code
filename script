@@ -873,9 +873,9 @@ Set-Content -Path $outputReport -Value $htmlContent -Encoding UTF8
 Write-Host "HTML report generated at: $outputReport"
 
 June 6
-# File paths for the two files to compare
-$file1 = "C:\path\to\file1.txt"
-$file2 = "C:\path\to\file2.txt"
+# File paths for the two web.config files to compare
+$file1 = "C:\path\to\web1.config"
+$file2 = "C:\path\to\web2.config"
 
 # Output HTML report file path
 $outputReport = "C:\path\to\ComparisonReport.html"
@@ -900,7 +900,7 @@ $htmlContent = @"
         table { border-collapse: collapse; width: 100%; }
         th, td { border: 1px solid black; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
-        pre { margin: 0; font-family: Consolas, monospace; white-space: pre-wrap; }
+        code { display: block; white-space: pre-wrap; word-wrap: break-word; }
     </style>
 </head>
 <body>
@@ -927,8 +927,8 @@ for ($i = 0; $i -lt $maxLines; $i++) {
         $htmlContent += @"
         <tr>
             <td>$lineNumber</td>
-            <td class='mismatch'><pre>$line1</pre></td>
-            <td class='mismatch'><pre>$line2</pre></td>
+            <td class='mismatch'><code>$line1</code></td>
+            <td class='mismatch'><code>$line2</code></td>
         </tr>
 "@
     }
@@ -948,52 +948,3 @@ $htmlContent += @"
 Set-Content -Path $outputReport -Value $htmlContent -Encoding UTF8
 
 Write-Host "HTML report generated at: $outputReport"
-
-
-# File path for the file to display
-$filePath = "C:\path\to\file.txt"
-
-# Output HTML report file path
-$outputReport = "C:\path\to\FileContentReport.html"
-
-# Read the file content
-$content = Get-Content -Path $filePath
-
-# Initialize HTML content
-$htmlContent = @"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>File Content Report</title>
-    <style>
-        body { font-family: Arial, sans-serif; }
-        pre { white-space: pre-wrap; word-wrap: break-word; }
-        .file-content { border: 1px solid black; padding: 10px; }
-    </style>
-</head>
-<body>
-    <h1>File Content Report</h1>
-    <h2>File: $filePath</h2>
-    <div class="file-content">
-        <pre>
-"@
-
-# Append file content to HTML
-foreach ($line in $content) {
-    $escapedLine = [System.Net.WebUtility]::HtmlEncode($line)
-    $htmlContent += "$escapedLine`r`n"
-}
-
-# Finalize HTML content
-$htmlContent += @"
-        </pre>
-    </div>
-</body>
-</html>
-"@
-
-# Save the HTML content to the output file
-Set-Content -Path $outputReport -Value $htmlContent -Encoding UTF8
-
-Write-Host "HTML report generated at: $outputReport"
-
