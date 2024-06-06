@@ -997,3 +997,93 @@ $comparisonResults | Export-Csv -Path $outputReport -NoTypeInformation
 
 Write-Host "CSV report generated at: $outputReport"
 
+new html report
+# Define the source and destination folders
+$sourceFolder = "C:\SourceFolder"
+$destinationFolder = "C:\DestinationFolder"
+$outputReportPath = "C:\ComparisonReport.html" # Default output HTML report path
+
+# Get a list of web config files in the source folder
+$sourceFiles = Get-ChildItem -Path $sourceFolder -Filter "*.config" -Recurse
+
+# Create an array to store the comparison results
+$results = @()
+
+# Loop through each file in the source folder
+foreach ($file in $sourceFiles) {
+    # Construct the corresponding file path in the destination folder
+    $destinationFilePath = $file.FullName.Replace($sourceFolder, $destinationFolder)
+
+    # Check if the file exists in the destination folder
+    if (Test-Path $destinationFilePath) {
+        # Read the content of source and destination files
+        $sourceFileContent = Get-Content $file.FullName
+        $destinationFileContent = Get-Content $destinationFilePath
+        
+        # Compare file contents and generate the HTML difference report
+        $mismatchSourceLines = @()
+        $mismatchDestinationLines = @()
+        for ($i = 0; $i -lt $sourceFileContent.Count; $i++) {
+            if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
+                $mismatchSourceLines += $sourceFileContent[$i]
+                $mismatchDestinationLines += $destinationFileContent[$i]
+            }
+        }
+        
+        # Check if the file contents are identical
+        if ($mismatchSourceLines.Count -eq 0) {
+            $result = "Matching"
+        } else {
+            $result = "Not Matching"
+        }
+        
+        # Add the comparison result to the results array
+        $results += [PSCustomObject]@{
+            FileName = $file.Name
+            SourceFolder = $file.DirectoryName
+            DestinationFolder = $destinationFilePath | Split-Path -Parent
+            Result = $result
+            SourceMismatchLines = $mismatchSourceLines -join "`n"
+            DestinationMismatchLines = $mismatchDestinationLines -join "`n"
+        }
+    }
+}
+
+# Generate the HTML report
+$htmlReport = @"
+<html>
+<head>
+    <title>Comparison Report</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 5px;
+        }
+        .mismatch {
+            background-color: #FF0000; /* red background for mismatching lines */
+        }
+    </style>
+</head>
+<body>
+    <h1>Comparison Report</h1>
+    <table>
+        <tr>
+            <th>FileName</th>
+            <th>SourceFolder</th>
+            <th>DestinationFolder</th>
+            <th>Result</th>
+            <th>Source Mismatch Lines</th>
+            <th>Destination Mismatch Lines</th>
+        </tr>
+"@ + ($results | ConvertTo-Html -Fragment) + @"
+    </table>
+</body>
+</html>
+"@
+
+# Output the HTML report
+$htmlReport | Out-File $outputReportPath
+Write-Output "Comparison report has been saved to: $outputReportPath"
