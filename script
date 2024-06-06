@@ -1106,3 +1106,116 @@ $htmlReport | Out-File $outputReportPath
 Write-Output "Comparison report has been saved to: $outputReportPath"
 
 
+updated html report
+# Define the source and destination folders
+$sourceFolder = "C:\SourceFolder"
+$destinationFolder = "C:\DestinationFolder"
+$outputReportPath = "C:\ComparisonReport.html" # Default output HTML report path
+
+# Get a list of web config files in the source folder
+$sourceFiles = Get-ChildItem -Path $sourceFolder -Filter "*.config" -Recurse
+
+# Create an array to store the comparison results
+$results = @()
+
+# Loop through each file in the source folder
+foreach ($file in $sourceFiles) {
+    # Construct the corresponding file path in the destination folder
+    $destinationFilePath = $file.FullName.Replace($sourceFolder, $destinationFolder)
+
+    # Check if the file exists in the destination folder
+    if (Test-Path $destinationFilePath) {
+        # Read the content of source and destination files
+        $sourceFileContent = Get-Content $file.FullName
+        $destinationFileContent = Get-Content $destinationFilePath
+        
+        # Compare file contents and generate the HTML difference report
+        $diffReport = @()
+        for ($i = 0; $i -lt $sourceFileContent.Count; $i++) {
+            if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
+                $diffReport += [PSCustomObject]@{
+                    LineNumber = $i + 1
+                    SourceLine = $sourceFileContent[$i]
+                    DestinationLine = $destinationFileContent[$i]
+                }
+                $diffReport += [PSCustomObject]@{
+                    LineNumber = ""
+                    SourceLine = ""
+                    DestinationLine = ""
+                } # Add an empty line for spacing
+            }
+        }
+        
+        # Check if the file contents are identical
+        if ($diffReport.Count -eq 0) {
+            $result = "Matching"
+        } else {
+            $result = "Not Matching"
+        }
+        
+        # Add the comparison result to the results array
+        $results += [PSCustomObject]@{
+            FileName = $file.Name
+            SourceFolder = $file.DirectoryName
+            DestinationFolder = $destinationFilePath | Split-Path -Parent
+            Result = $result
+            ComparisonReport = $diffReport
+        }
+    }
+}
+
+# Generate the HTML report
+$htmlReport = @"
+<html>
+<head>
+    <title>Comparison Report</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 5px;
+        }
+        .mismatch {
+            background-color: #FF0000; /* red background for mismatching lines */
+        }
+    </style>
+</head>
+<body>
+    <h1>Comparison Report</h1>
+    <table>
+        <tr>
+            <th>FileName</th>
+            <th>SourceFolder</th>
+            <th>DestinationFolder</th>
+            <th>Result</th>
+            <th>Comparison Report</th>
+        </tr>
+"@ + ($results | ForEach-Object {
+    $comparisonReportHtml = "<table border='1'>";
+    $comparisonReportHtml += "<tr><th>Line Number</th><th>Source Line</th><th>Destination Line</th></tr>";
+    $_.ComparisonReport | ForEach-Object {
+        if ($_.LineNumber -ne "") {
+            $comparisonReportHtml += "<tr>";
+            $comparisonReportHtml += "<td>$($_.LineNumber)</td>";
+            $comparisonReportHtml += "<td>$($_.SourceLine)</td>";
+            $comparisonReportHtml += "<td>$($_.DestinationLine)</td>";
+            $comparisonReportHtml += "</tr>";
+        } else {
+            $comparisonReportHtml += "<tr>";
+            $comparisonReportHtml += "<td colspan='3'>&nbsp;</td>"; # Add an empty line for spacing
+            $comparisonReportHtml += "</tr>";
+        }
+    }
+    $comparisonReportHtml += "</table>";
+    "<tr><td>$($_.FileName)</td><td>$($_.SourceFolder)</td><td>$($_.DestinationFolder)</td><td>$($_.Result)</td><td>$comparisonReportHtml</td></tr>";
+}) + @"
+    </table>
+</body>
+</html>
+"@
+
+# Output the HTML report
+$htmlReport | Out-File $outputReportPath
+Write-Output "Comparison report has been saved to: $outputReportPath"
