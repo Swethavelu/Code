@@ -980,7 +980,8 @@ $htmlContent = @"
 
 # Append file content to HTML
 foreach ($line in $content) {
-    $htmlContent += "$line`r`n"
+    $escapedLine = [System.Net.WebUtility]::HtmlEncode($line)
+    $htmlContent += "$escapedLine`r`n"
 }
 
 # Finalize HTML content
@@ -995,3 +996,4 @@ $htmlContent += @"
 Set-Content -Path $outputReport -Value $htmlContent -Encoding UTF8
 
 Write-Host "HTML report generated at: $outputReport"
+
