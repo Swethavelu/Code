@@ -1136,9 +1136,6 @@ foreach ($file in $sourceFiles) {
             if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
                 $mismatchSourceLines += "[$($i + 1). $($sourceFileContent[$i])]"
                 $mismatchDestinationLines += "[$($i + 1). $($destinationFileContent[$i])]"
-                # Add an empty line for spacing
-                $mismatchSourceLines += ""
-                $mismatchDestinationLines += ""
             }
         }
         
@@ -1174,6 +1171,9 @@ $htmlReport = @"
             border: 1px solid black;
             padding: 5px;
         }
+        pre {
+            white-space: pre-wrap; /* preserve whitespace formatting */
+        }
         .mismatch {
             background-color: #FF0000; /* red background for mismatching lines */
         }
@@ -1201,3 +1201,4 @@ $htmlReport = @"
 # Output the HTML report
 $htmlReport | Out-File $outputReportPath
 Write-Output "Comparison report has been saved to: $outputReportPath"
+
