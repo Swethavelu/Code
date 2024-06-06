@@ -1349,7 +1349,35 @@ $htmlReport = @"
             <th>Source Mismatch Lines</th>
             <th>Destination Mismatch Lines</th>
         </tr>
-"@ + ($results | ConvertTo-Html -Fragment) + @"
+"@
+
+# Convert the results to HTML and add blank lines between each mismatch
+foreach ($result in $results) {
+    $htmlReport += "<tr><td>$($result.FileName)</td>"
+    $htmlReport += "<td>$($result.SourceFolder)</td>"
+    $htmlReport += "<td>$($result.DestinationFolder)</td>"
+    $htmlReport += "<td>$($result.Result)</td>"
+    
+    # Add blank lines between mismatch lines for better visibility
+    $sourceMismatchLines = $result.SourceMismatchLines -split "`n`n"
+    $destinationMismatchLines = $result.DestinationMismatchLines -split "`n`n"
+    
+    $htmlReport += "<td>"
+    foreach ($line in $sourceMismatchLines) {
+        $htmlReport += "$line`n`n"
+    }
+    $htmlReport += "</td>"
+    
+    $htmlReport += "<td>"
+    foreach ($line in $destinationMismatchLines) {
+        $htmlReport += "$line`n`n"
+    }
+    $htmlReport += "</td>"
+    
+    $htmlReport += "</tr>"
+}
+
+$htmlReport += @"
     </table>
 </body>
 </html>
