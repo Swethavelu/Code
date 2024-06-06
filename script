@@ -887,13 +887,6 @@ $content2 = Get-Content -Path $file2
 # Find the maximum number of lines in either file
 $maxLines = [Math]::Max($content1.Length, $content2.Length)
 
-# Function to encode HTML content
-function Encode-Html {
-    param ([string]$input)
-    $encoded = [System.Net.WebUtility]::HtmlEncode($input)
-    return $encoded -replace "`n", "<br>" -replace "`r", ""
-}
-
 # Initialize HTML content
 $htmlContent = @"
 <!DOCTYPE html>
@@ -907,6 +900,7 @@ $htmlContent = @"
         table { border-collapse: collapse; width: 100%; }
         th, td { border: 1px solid black; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
+        pre { margin: 0; font-family: Consolas, monospace; }
     </style>
 </head>
 <body>
@@ -927,10 +921,6 @@ for ($i = 0; $i -lt $maxLines; $i++) {
     $line1 = if ($i -lt $content1.Length) { $content1[$i] } else { "" }
     $line2 = if ($i -lt $content2.Length) { $content2[$i] } else { "" }
     
-    # Encode the lines for HTML
-    $encodedLine1 = Encode-Html -input $line1
-    $encodedLine2 = Encode-Html -input $line2
-    
     # Debug information
     Write-Host "Comparing Line $lineNumber"
     Write-Host "File 1: $line1"
@@ -943,8 +933,8 @@ for ($i = 0; $i -lt $maxLines; $i++) {
         $htmlContent += @"
         <tr>
             <td>$lineNumber</td>
-            <td class='mismatch'>$encodedLine1</td>
-            <td class='mismatch'>$encodedLine2</td>
+            <td class='mismatch'><pre>$line1</pre></td>
+            <td class='mismatch'><pre>$line2</pre></td>
         </tr>
 "@
     }
@@ -964,3 +954,4 @@ $htmlContent += @"
 Set-Content -Path $outputReport -Value $htmlContent -Encoding UTF8
 
 Write-Host "HTML report generated at: $outputReport"
+
