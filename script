@@ -1299,8 +1299,8 @@ foreach ($file in $sourceFiles) {
         $mismatchDestinationLines = @()
         for ($i = 0; $i -lt $sourceFileContent.Count; $i++) {
             if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
-                $mismatchSourceLines += ($i + 1).ToString() + ". " + $sourceFileContent[$i] + "`n"
-                $mismatchDestinationLines += ($i + 1).ToString() + ". " + $destinationFileContent[$i] + "`n"
+                $mismatchSourceLines += ($i + 1).ToString() + ". " + $sourceFileContent[$i] + "`n`n"
+                $mismatchDestinationLines += ($i + 1).ToString() + ". " + $destinationFileContent[$i] + "`n`n"
             }
         }
         
@@ -1319,16 +1319,6 @@ foreach ($file in $sourceFiles) {
             Result = $result
             SourceMismatchLines = $mismatchSourceLines -join "`n"
             DestinationMismatchLines = $mismatchDestinationLines -join "`n"
-        }
-
-        # Add a blank line between each set of differences
-        $results += [PSCustomObject]@{
-            FileName = ""
-            SourceFolder = ""
-            DestinationFolder = ""
-            Result = ""
-            SourceMismatchLines = ""
-            DestinationMismatchLines = ""
         }
     }
 }
