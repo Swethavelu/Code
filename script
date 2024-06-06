@@ -956,3 +956,4 @@ $htmlContent += @"
 Set-Content -Path $outputReport -Value $htmlContent -Encoding UTF8
 
 Write-Host "HTML report generated at: $outputReport"
+
