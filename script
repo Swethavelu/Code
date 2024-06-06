@@ -871,3 +871,86 @@ $htmlContent += @"
 Set-Content -Path $outputReport -Value $htmlContent -Encoding UTF8
 
 Write-Host "HTML report generated at: $outputReport"
+
+June 6
+# File paths for the two files to compare
+$file1 = "C:\path\to\file1.txt"
+$file2 = "C:\path\to\file2.txt"
+
+# Output HTML report file path
+$outputReport = "C:\path\to\ComparisonReport.html"
+
+# Read the files into arrays
+$content1 = Get-Content -Path $file1
+$content2 = Get-Content -Path $file2
+
+# Find the maximum number of lines in either file
+$maxLines = [Math]::Max($content1.Length, $content2.Length)
+
+# Function to encode HTML content
+function Encode-Html {
+    param ([string]$input)
+    $encoded = [System.Net.WebUtility]::HtmlEncode($input)
+    return $encoded -replace "`n", "<br>" -replace "`r", ""
+}
+
+# Initialize HTML content
+$htmlContent = @"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Comparison Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .mismatch { color: red; }
+        .line { margin-bottom: 10px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>File Comparison Report</h1>
+    <h2>File 1: $file1</h2>
+    <h2>File 2: $file2</h2>
+    <table>
+        <tr>
+            <th>Line Number</th>
+            <th>File 1</th>
+            <th>File 2</th>
+        </tr>
+"@
+
+# Loop through each line up to the maximum number of lines
+for ($i = 0; $i -lt $maxLines; $i++) {
+    $lineNumber = $i + 1
+    $line1 = if ($i -lt $content1.Length) { $content1[$i] } else { "" }
+    $line2 = if ($i -lt $content2.Length) { $content2[$i] } else { "" }
+    
+    # Compare the lines
+    if ($line1 -ne $line2) {
+        # Append mismatching lines to the HTML content
+        $htmlContent += @"
+        <tr>
+            <td>$lineNumber</td>
+            <td class='mismatch'>$(Encode-Html -input $line1)</td>
+            <td class='mismatch'>$(Encode-Html -input $line2)</td>
+        </tr>
+"@
+    }
+}
+
+# Finalize HTML content
+$htmlContent += @"
+    </table>
+    <footer>
+        <p>Comparison complete.</p>
+    </footer>
+</body>
+</html>
+"@
+
+# Save the HTML content to the output file
+Set-Content -Path $outputReport -Value $htmlContent -Encoding UTF8
+
+Write-Host "HTML report generated at: $outputReport"
