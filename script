@@ -1102,11 +1102,13 @@ $results = @()
 
 # Loop through each file in the source folder
 foreach ($file in $sourceFiles) {
+    
     # Construct the corresponding file path in the destination folder
     $destinationFilePath = $file.FullName.Replace($sourceFolder, $destinationFolder)
 
     # Check if the file exists in the destination folder
     if (Test-Path $destinationFilePath) {
+        
         # Read the content of source and destination files
         $sourceFileContent = Get-Content $file.FullName
         $destinationFileContent = Get-Content $destinationFilePath
@@ -1134,8 +1136,8 @@ foreach ($file in $sourceFiles) {
             SourceFolder = $file.DirectoryName
             DestinationFolder = $destinationFilePath | Split-Path -Parent
             Result = $result
-            SourceMismatchLines = $mismatchSourceLines -join "<br>"
-            DestinationMismatchLines = $mismatchDestinationLines -join "<br>"
+            SourceMismatchLines = $mismatchSourceLines -join "`n"
+            DestinationMismatchLines = $mismatchDestinationLines -join "`n"
         }
     }
 }
@@ -1152,9 +1154,6 @@ $htmlReport = @"
         th, td {
             border: 1px solid black;
             padding: 5px;
-        }
-        .mismatch {
-            background-color: #FF0000; /* red background for mismatching lines */
         }
     </style>
 </head>
