@@ -1023,10 +1023,14 @@ foreach ($file in $sourceFiles) {
         # Compare file contents and generate the HTML difference report
         $mismatchSourceLines = @()
         $mismatchDestinationLines = @()
+        $mismatchSourceLineNumbers = @()
+        $mismatchDestinationLineNumbers = @()
         for ($i = 0; $i -lt $sourceFileContent.Count; $i++) {
             if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
                 $mismatchSourceLines += $sourceFileContent[$i]
                 $mismatchDestinationLines += $destinationFileContent[$i]
+                $mismatchSourceLineNumbers += ($i + 1)
+                $mismatchDestinationLineNumbers += ($i + 1)
             }
         }
         
@@ -1045,6 +1049,8 @@ foreach ($file in $sourceFiles) {
             Result = $result
             SourceMismatchLines = $mismatchSourceLines -join "`n"
             DestinationMismatchLines = $mismatchDestinationLines -join "`n"
+            SourceMismatchLineNumbers = $mismatchSourceLineNumbers -join ", "
+            DestinationMismatchLineNumbers = $mismatchDestinationLineNumbers -join ", "
         }
     }
 }
@@ -1076,7 +1082,9 @@ $htmlReport = @"
             <th>DestinationFolder</th>
             <th>Result</th>
             <th>Source Mismatch Lines</th>
+            <th>Source Mismatch Line Numbers</th>
             <th>Destination Mismatch Lines</th>
+            <th>Destination Mismatch Line Numbers</th>
         </tr>
 "@ + ($results | ConvertTo-Html -Fragment) + @"
     </table>
@@ -1087,3 +1095,4 @@ $htmlReport = @"
 # Output the HTML report
 $htmlReport | Out-File $outputReportPath
 Write-Output "Comparison report has been saved to: $outputReportPath"
+
