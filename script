@@ -1135,14 +1135,15 @@ foreach ($file in $sourceFiles) {
             if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
                 $diffReport += [PSCustomObject]@{
                     LineNumber = $i + 1
-                    SourceLine = $sourceFileContent[$i]
-                    DestinationLine = $destinationFileContent[$i]
+                    SourceLine = "[$($i + 1)] $($sourceFileContent[$i])"
+                    DestinationLine = "[$($i + 1)] $($destinationFileContent[$i])"
                 }
+                # Add an empty line for spacing
                 $diffReport += [PSCustomObject]@{
                     LineNumber = ""
                     SourceLine = ""
                     DestinationLine = ""
-                } # Add an empty line for spacing
+                }
             }
         }
         
