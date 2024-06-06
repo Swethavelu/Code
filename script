@@ -948,3 +948,50 @@ $htmlContent += @"
 Set-Content -Path $outputReport -Value $htmlContent -Encoding UTF8
 
 Write-Host "HTML report generated at: $outputReport"
+
+
+# File path for the file to display
+$filePath = "C:\path\to\file.txt"
+
+# Output HTML report file path
+$outputReport = "C:\path\to\FileContentReport.html"
+
+# Read the file content
+$content = Get-Content -Path $filePath
+
+# Initialize HTML content
+$htmlContent = @"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Content Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+        .file-content { border: 1px solid black; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>File Content Report</h1>
+    <h2>File: $filePath</h2>
+    <div class="file-content">
+        <pre>
+"@
+
+# Append file content to HTML
+foreach ($line in $content) {
+    $htmlContent += "$line`r`n"
+}
+
+# Finalize HTML content
+$htmlContent += @"
+        </pre>
+    </div>
+</body>
+</html>
+"@
+
+# Save the HTML content to the output file
+Set-Content -Path $outputReport -Value $htmlContent -Encoding UTF8
+
+Write-Host "HTML report generated at: $outputReport"
