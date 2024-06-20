@@ -1266,3 +1266,203 @@ function Process-InputCSV {
 # Process both input CSV files
 Process-InputCSV -inputCSVPath $bauInputCSVPath
 Process-InputCSV -inputCSVPath $conv4InputCSVPath
+
+version 3:
+# Specify the input CSV file paths
+$bauInputCSVPath = "C:\Path\to\bau_input.csv"
+$conv4InputCSVPath = "C:\Path\to\conv4_input.csv"
+
+# Specify the destination paths
+$bauDestinationPath = "C:\Destination\BAU"
+$conv4DestinationPath = "C:\Destination\CONV4"
+
+# Define a function to create subdirectories for XLSX and Others within a specified path
+function Ensure-Subdirectories {
+    param (
+        [string]$basePath
+    )
+
+    $xlsxFolder = Join-Path -Path $basePath -ChildPath "XLSX"
+    $othersFolder = Join-Path -Path $basePath -ChildPath "Others"
+
+    if (-not (Test-Path -Path $xlsxFolder -PathType Container)) {
+        New-Item -Path $xlsxFolder -ItemType Directory
+    }
+    if (-not (Test-Path -Path $othersFolder -PathType Container)) {
+        New-Item -Path $othersFolder -ItemType Directory
+    }
+
+    return @{ XLSXFolder = $xlsxFolder; OthersFolder = $othersFolder }
+}
+
+# Ensure subdirectories for both destination paths
+$bauFolders = Ensure-Subdirectories -basePath $bauDestinationPath
+$conv4Folders = Ensure-Subdirectories -basePath $conv4DestinationPath
+
+# Maximum file size in bytes (10 GB)
+$maxFileSize = 10 * 1024 * 1024 * 1024
+
+# Function to resolve the file name pattern with wildcard for timestamp
+function Resolve-FilenamePattern {
+    param (
+        [string]$fileNamePattern
+    )
+    
+    # Replace placeholders with wildcards
+    $resolvedFileNamePattern = $fileNamePattern -replace '\[date\|[^\]]+\]', '*'
+    $resolvedFileNamePattern = $resolvedFileNamePattern -replace '\[Time\|[^\]]+\]', '*'
+    
+    return $resolvedFileNamePattern
+}
+
+# Function to remove timestamp from filename
+function Remove-Timestamp {
+    param (
+        [string]$fileName
+    )
+
+    # Remove the timestamp pattern (assuming format YYYYMMDD_HHmmss or similar)
+    $fileName -replace '\d{8}_\d{4}|\d{8}_\d{6}|\d{8}|\d{4}', ''
+}
+
+# Function to process an input CSV file
+function Process-InputCSV {
+    param (
+        [string]$inputCSVPath,
+        [string]$destinationPath,
+        [hashtable]$folders
+    )
+
+    # Read the CSV file
+    $csvData = Import-Csv -Path $inputCSVPath
+
+    # Debugging: Display column names
+    Write-Host "Column names in CSV file ($inputCSVPath):"
+    $csvData[0].PSObject.Properties.Name
+
+    # Check if the required columns exist in the CSV data
+    if ($csvData[0].PSObject.Properties.Name -contains 'FolderPath' -and $csvData[0].PSObject.Properties.Name -contains 'Output Filename(s)' -and $csvData[0].PSObject.Properties.Name -contains 'JobName' -and $csvData[0].PSObject.Properties.Name -contains 'FeedId') {
+        # Create a list to store updated rows
+        $updatedRows = @()
+
+        # Group CSV data by folder path to minimize redundant directory scans
+        $csvDataGroupedByFolderPath = $csvData | Group-Object -Property FolderPath
+
+        # Iterate through each folder group
+        foreach ($folderGroup in $csvDataGroupedByFolderPath) {
+            $folderPath = $folderGroup.Name
+            $rows = $folderGroup.Group
+
+            # Check if the folder path exists
+            if (Test-Path $folderPath -PathType Container) {
+                # Get all files in the folder once
+                $allFiles = Get-ChildItem -Path $folderPath
+
+                # Iterate through each row in the group
+                foreach ($row in $rows) {
+                    $fileNamePattern = $row.'Output Filename(s)'
+                    $jobName = $row.JobName
+                    $feedId = $row.FeedId
+
+                    # Initialize default values for the new columns
+                    $fileStatus = "File Not Found"
+                    $fileSize = 0
+                    $fileComparisonStatus = "Data Not Found"
+
+                    # Resolve the file name pattern
+                    $resolvedFileNamePattern = Resolve-FilenamePattern -fileNamePattern $fileNamePattern
+
+                    # Search for files that match the resolved pattern
+                    $matchingFiles = $allFiles | Where-Object { $_.Name -like $resolvedFileNamePattern }
+
+                    # Find the latest timestamp file in the folder
+                    $latestFile = $matchingFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
+                    if ($latestFile) {
+                        # Get file size in bytes
+                        $fileSize = $latestFile.Length
+
+                        # Check if file size is less than 10 GB
+                        if ($fileSize -lt $maxFileSize) {
+                            # Construct the final resolved file name
+                            $resolvedFileName = $latestFile.Name
+
+                            # Construct the full file path
+                            $filePath = Join-Path -Path $folderPath -ChildPath $resolvedFileName
+
+                            # Check if the file exists
+                            if (Test-Path $filePath -PathType Leaf) {
+                                # Determine destination folder based on file extension
+                                if ($latestFile.Extension -eq ".xlsx") {
+                                    $destinationFolder = $folders.XLSXFolder
+                                } else {
+                                    $destinationFolder = $folders.OthersFolder
+                                }
+
+                                # Copy the file to the destination folder
+                                $destinationFilePath = Join-Path -Path $destinationFolder -ChildPath $resolvedFileName
+                                Copy-Item -Path $filePath -Destination $destinationFilePath -Force
+
+                                # Remove timestamp from the original file name
+                                $baseFileName = Remove-Timestamp -fileName ([System.IO.Path]::GetFileNameWithoutExtension($resolvedFileName))
+                                $extension = [System.IO.Path]::GetExtension($resolvedFileName)
+
+                                # Rename the file to include the JobName and FeedId
+                                $newFileName = "{0}_{1}_{2}{3}" -f $baseFileName, $jobName, $feedId, $extension
+                                $newFilePath = Join-Path -Path $destinationFolder -ChildPath $newFileName
+                                Rename-Item -Path $destinationFilePath -NewName $newFileName
+
+                                $fileStatus = "File Present"
+                                $fileSizeKB = [math]::Round($fileSize / 1KB)
+                                if ($fileSizeKB -eq 0) {
+                                    $fileComparisonStatus = "Data Not Found"
+                                } elseif ($fileSizeKB -eq 1) {
+                                    $fileComparisonStatus = "Only Headers Found"
+                                } else {
+                                    $fileComparisonStatus = "File Ready for Comparison"
+                                }
+                            } else {
+                                Write-Warning "File $($resolvedFileName) does not exist in folder path: $($folderPath)"
+                            }
+                        } else {
+                            $fileStatus = "File Exceeds Size Limit"
+                            $fileSizeKB = [math]::Round($fileSize / 1KB)
+                            $fileComparisonStatus = "File Too Large to Process"
+                        }
+                    } else {
+                        Write-Warning "No files found in folder path: $($folderPath) matching pattern: $($resolvedFileNamePattern)"
+                    }
+
+                    # Update the row with new column values
+                    $row | Add-Member -NotePropertyName "File Status" -NotePropertyValue $fileStatus -Force
+                    $row | Add-Member -NotePropertyName "File Size" -NotePropertyValue "$($fileSizeKB) KB" -Force
+                    $row | Add-Member -NotePropertyName "File Comparison Status" -NotePropertyValue $fileComparisonStatus -Force
+
+                    # Add updated row to the list
+                    $updatedRows += $row
+                }
+            } else {
+                Write-Warning "Folder path $($folderPath) does not exist."
+
+                # Update the rows with new column values for non-existent folder
+                foreach ($row in $rows) {
+                    $row | Add-Member -NotePropertyName "File Status" -NotePropertyValue "File Not Found" -Force
+                    $row | Add-Member -NotePropertyName "File Size" -NotePropertyValue "0 KB" -Force
+                    $row | Add-Member -NotePropertyName "File Comparison Status" -NotePropertyValue "Data Not Found" -Force
+                    $updatedRows += $row
+                }
+            }
+        }
+
+        # Export the updated CSV
+        $updatedRows | Export-Csv -Path $inputCSVPath -NoTypeInformation
+    } else {
+        Write-Warning "Required columns 'FolderPath', 'Output Filename(s)', 'JobName', and/or 'FeedId' not found in the CSV file."
+    }
+}
+
+# Process BAU Input CSV
+Process-InputCSV -inputCSVPath $bauInputCSVPath -destinationPath $bauDestinationPath -folders $bauFolders
+
+# Process CONV4 Input CSV
+Process-InputCSV -inputCSVPath $conv4InputCSVPath -destinationPath $conv4DestinationPath -folders $conv4Folders
