@@ -1596,20 +1596,30 @@ $htmlReport = @"
 $htmlReport | Out-File -FilePath $outputReportPath
 
 June 28 2024:
-# Define the constant paths for the source and destination folder structures
-$constantSourcePath = "\sites\abc\wwwroot\webapps\services\customer\source"
-$constantDestinationPath = "\sites\abc\wwwroot\webapps\services\customer\destination"
+# Define the list of constant paths for the source and destination folder structures
+$sourceConstantPaths = @(
+    "\sites\abc\wwwroot\webapps\services\customer\source1",
+    "\sites\abc\wwwroot\webapps\services\customer\source2"
+)
+$destinationConstantPaths = @(
+    "\sites\abc\wwwroot\webapps\services\customer\destination1",
+    "\sites\abc\wwwroot\webapps\services\customer\destination2"
+)
 
 # Define the list of server names for source and destination
 $sourceServers = @("ah-123.sdi.corp.sob.com", "ah-124.sdi.corp.sob.com")
 $destinationServers = @("ah-125.sdi.corp.sob.com", "ah-126.sdi.corp.sob.com")
 
-# Create the source and destination folder pairs using the server names
+# Create the source and destination folder pairs using the server names and constant paths
 $folderPairs = @()
-for ($i = 0; $i -lt $sourceServers.Count; $i++) {
-    $folderPairs += @{
-        Source = "\\$($sourceServers[$i])$constantSourcePath"
-        Destination = "\\$($destinationServers[$i])$constantDestinationPath"
+foreach ($sourceServer in $sourceServers) {
+    foreach ($destinationServer in $destinationServers) {
+        for ($i = 0; $i -lt $sourceConstantPaths.Count; $i++) {
+            $folderPairs += @{
+                Source = "\\$sourceServer$($sourceConstantPaths[$i])"
+                Destination = "\\$destinationServer$($destinationConstantPaths[$i])"
+            }
+        }
     }
 }
 
@@ -1623,8 +1633,8 @@ foreach ($pair in $folderPairs) {
     $sourceFolder = $pair.Source
     $destinationFolder = $pair.Destination
 
-    # Get a list of web config files in the source folder
-    $sourceFiles = Get-ChildItem -Path $sourceFolder -Filter "*.config" -Recurse
+    # Get a list of web.config files in the source folder
+    $sourceFiles = Get-ChildItem -Path $sourceFolder -Filter "web.config" -Recurse
 
     # Loop through each file in the source folder
     foreach ($file in $sourceFiles) {
