@@ -1596,8 +1596,9 @@ $htmlReport = @"
 $htmlReport | Out-File -FilePath $outputReportPath
 
 June 28 2024:
-# Define the constant path for the folder structure
-$constantPath = "\sites\abc\wwwroot\webapps\services\customer"
+# Define the constant paths for the source and destination folder structures
+$constantSourcePath = "\sites\abc\wwwroot\webapps\services\customer\source"
+$constantDestinationPath = "\sites\abc\wwwroot\webapps\services\customer\destination"
 
 # Define the list of server names
 $serverNames = @("ah-123.sdi.corp.sob.com", "ah-124.sdi.corp.sob.com")
@@ -1606,8 +1607,8 @@ $serverNames = @("ah-123.sdi.corp.sob.com", "ah-124.sdi.corp.sob.com")
 $folderPairs = @()
 foreach ($server in $serverNames) {
     $folderPairs += @{
-        Source = "\\$server$constantPath"
-        Destination = "\\$server$constantPath"
+        Source = "\\$server$constantSourcePath"
+        Destination = "\\$server$constantDestinationPath"
     }
 }
 
