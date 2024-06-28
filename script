@@ -1595,3 +1595,109 @@ $htmlReport = @"
 # Output the HTML report to a file
 $htmlReport | Out-File -FilePath $outputReportPath
 
+June 28 2024:
+# Define the constant path for the folder structure
+$constantPath = "\sites\abc\wwwroot\webapps\services\customer"
+
+# Define the list of server names
+$serverNames = @("ah-123.sdi.corp.sob.com", "ah-124.sdi.corp.sob.com")
+
+# Create the source and destination folder pairs using the server names
+$folderPairs = @()
+foreach ($server in $serverNames) {
+    $folderPairs += @{
+        Source = "\\$server$constantPath"
+        Destination = "\\$server$constantPath"
+    }
+}
+
+$outputReportPath = "C:\ComparisonReport.html" # Default output HTML report path
+
+# Create an array to store the comparison results
+$results = @()
+
+# Loop through each pair of source and destination folders
+foreach ($pair in $folderPairs) {
+    $sourceFolder = $pair.Source
+    $destinationFolder = $pair.Destination
+
+    # Get a list of web config files in the source folder
+    $sourceFiles = Get-ChildItem -Path $sourceFolder -Filter "*.config" -Recurse
+
+    # Loop through each file in the source folder
+    foreach ($file in $sourceFiles) {
+        
+        # Construct the corresponding file path in the destination folder
+        $destinationFilePath = $file.FullName.Replace($sourceFolder, $destinationFolder)
+
+        # Check if the file exists in the destination folder
+        if (Test-Path $destinationFilePath) {
+            
+            # Read the content of source and destination files
+            $sourceFileContent = Get-Content $file.FullName
+            $destinationFileContent = Get-Content $destinationFilePath
+            
+            # Compare file contents and generate the HTML difference report
+            $mismatchSourceLines = @()
+            $mismatchDestinationLines = @()
+            for ($i = 0; $i -lt $sourceFileContent.Count; $i++) {
+                if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
+                    $mismatchSourceLines += ($i + 1).ToString() + ". " + $sourceFileContent[$i] + "`n"
+                    $mismatchDestinationLines += ($i + 1).ToString() + ". " + $destinationFileContent[$i] + "`n"
+                }
+            }
+            
+            # Check if the file contents are identical
+            if ($mismatchSourceLines.Count -eq 0) {
+                $result = "Matching"
+            } else {
+                $result = "Not Matching"
+            }
+            
+            # Add the comparison result to the results array
+            $results += [PSCustomObject]@{
+                FileName = $file.Name
+                SourceFolder = $file.DirectoryName
+                DestinationFolder = $destinationFilePath | Split-Path -Parent
+                Result = $result
+                SourceMismatchLines = $mismatchSourceLines -join "`n"
+                DestinationMismatchLines = $mismatchDestinationLines -join "`n"
+            }
+        }
+    }
+}
+
+# Generate the HTML report
+$htmlReport = @"
+<html>
+<head>
+    <title>Comparison Report</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Comparison Report</h1>
+    <table>
+        <tr>
+            <th>FileName</th>
+            <th>SourceFolder</th>
+            <th>DestinationFolder</th>
+            <th>Result</th>
+            <th>Source Mismatch Lines</th>
+            <th>Destination Mismatch Lines</th>
+        </tr>
+"@ + ($results | ConvertTo-Html -Fragment) + @"
+    </table>
+</body>
+</html>
+"@
+
+# Output the HTML report to a file
+$htmlReport | Out-File -FilePath $outputReportPath
