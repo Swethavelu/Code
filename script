@@ -1600,15 +1600,16 @@ June 28 2024:
 $constantSourcePath = "\sites\abc\wwwroot\webapps\services\customer\source"
 $constantDestinationPath = "\sites\abc\wwwroot\webapps\services\customer\destination"
 
-# Define the list of server names
-$serverNames = @("ah-123.sdi.corp.sob.com", "ah-124.sdi.corp.sob.com")
+# Define the list of server names for source and destination
+$sourceServers = @("ah-123.sdi.corp.sob.com", "ah-124.sdi.corp.sob.com")
+$destinationServers = @("ah-125.sdi.corp.sob.com", "ah-126.sdi.corp.sob.com")
 
 # Create the source and destination folder pairs using the server names
 $folderPairs = @()
-foreach ($server in $serverNames) {
+for ($i = 0; $i -lt $sourceServers.Count; $i++) {
     $folderPairs += @{
-        Source = "\\$server$constantSourcePath"
-        Destination = "\\$server$constantDestinationPath"
+        Source = "\\$($sourceServers[$i])$constantSourcePath"
+        Destination = "\\$($destinationServers[$i])$constantDestinationPath"
     }
 }
 
