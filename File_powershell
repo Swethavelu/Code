@@ -2138,6 +2138,30 @@ function Process-InputCSV {
     }
 }
 
+
+
+July 15 2024
+# Specify the source directories
+$sourceDirectories = @("C:\Source1", "D:\Source2", "\\Server\Share\Source3")
+
+# Specify the destination directory
+$destinationDirectory = "E:\Destination"
+
+# Iterate through each source directory
+foreach ($sourceDir in $sourceDirectories) {
+    # Get all files in the current source directory
+    $files = Get-ChildItem $sourceDir -File
+    
+    # Copy each file to the destination directory
+    foreach ($file in $files) {
+        $destinationPath = Join-Path -Path $destinationDirectory -ChildPath $file.Name
+        Copy-Item -Path $file.FullName -Destination $destinationPath -Force
+        Write-Host "Copied $($file.FullName) to $($destinationPath)"
+    }
+}
+
+Write-Host "File copying completed."
+
 # Process BAU Input CSV
 Process-InputCSV -inputCSVPath $bauInputCSVPath -destinationPath $bauDestinationPath -folders $bauFolders
 
