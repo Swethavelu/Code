@@ -2173,3 +2173,26 @@ Process-InputCSV -inputCSVPath $bauInputCSVPath -destinationPath $bauDestination
 
 # Process CONV4 Input CSV
 Process-InputCSV -inputCSVPath $conv4InputCSVPath -destinationPath $conv4DestinationPath -folders $conv4Folders
+
+
+2nd
+# Specify the source directories
+$sourceDirectories = @("C:\Source1", "D:\Source2", "\\Server\Share\Source3")
+
+# Specify the destination directory
+$destinationDirectory = "E:\Destination"
+
+# Iterate through each source directory
+foreach ($sourceDir in $sourceDirectories) {
+    # Get all web.config files in the current source directory
+    $webConfigFiles = Get-ChildItem -Path $sourceDir -Filter "web.config" -File
+    
+    # Copy each web.config file to the destination directory
+    foreach ($file in $webConfigFiles) {
+        $destinationPath = Join-Path -Path $destinationDirectory -ChildPath $file.Name
+        Copy-Item -Path $file.FullName -Destination $destinationPath -Force
+        Write-Host "Copied $($file.FullName) to $($destinationPath)"
+    }
+}
+
+Write-Host "File copying completed."
