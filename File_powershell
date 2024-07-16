@@ -2196,3 +2196,35 @@ foreach ($sourceDir in $sourceDirectories) {
 }
 
 Write-Host "File copying completed."
+
+
+july 16
+# Define source directories where web.config files are located
+$sourceDirectories = "C:\Source1", "C:\Source2", "C:\Source3"  # Add more directories as needed
+
+# Define the destination directory where files will be copied
+$destinationDirectory = "C:\Destination"
+
+# Initialize a counter for appending numbers to filenames
+$count = 1
+
+# Loop through each source directory
+foreach ($sourceDir in $sourceDirectories) {
+    # Get all web.config files in the current source directory
+    $webConfigFiles = Get-ChildItem -Path $sourceDir -Filter "web.config" -File
+    
+    # Copy each web.config file to the destination directory with appending number
+    foreach ($file in $webConfigFiles) {
+        $destinationFileName = "web_$count.config"  # Append count to filename
+        $destinationPath = Join-Path -Path $destinationDirectory -ChildPath $destinationFileName
+        
+        # Copy the file to the destination directory
+        Copy-Item -Path $file.FullName -Destination $destinationPath
+        
+        # Increment the counter for the next file
+        $count++
+    }
+}
+
+# Display completion message
+Write-Host "Web.config files copied to $destinationDirectory with appended numbers."
