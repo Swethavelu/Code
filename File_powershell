@@ -2228,3 +2228,78 @@ foreach ($sourceDir in $sourceDirectories) {
 
 # Display completion message
 Write-Host "Web.config files copied to $destinationDirectory with appended numbers."
+
+July 18 2024
+# Define the file pairs for comparison
+$filePairs = @(
+    @{ Source = "C:\Path\To\Source\File1.web.config"; Destination = "C:\Path\To\Destination\File1.web.config" },
+    @{ Source = "C:\Path\To\Source\File2.web.config"; Destination = "C:\Path\To\Destination\File2.web.config" }
+)
+
+# Function to compare files and generate HTML report
+function Compare-FilesAndGenerateReport {
+    param (
+        [Parameter(Mandatory=$true)]
+        [array]$FilePairs
+    )
+
+    # Initialize HTML content
+    $htmlContent = @"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Comparison Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #dddddd; text-align: left; padding: 8px; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>File Comparison Report</h1>
+"@
+
+    foreach ($pair in $FilePairs) {
+        $sourceFile = $pair.Source
+        $destinationFile = $pair.Destination
+
+        if (Test-Path $sourceFile -and Test-Path $destinationFile) {
+            $sourceContent = Get-Content $sourceFile
+            $destinationContent = Get-Content $destinationFile
+
+            $comparisonResult = Compare-Object -ReferenceObject $sourceContent -DifferenceObject $destinationContent
+
+            $htmlContent += "<h2>Comparing $sourceFile and $destinationFile</h2>"
+            $htmlContent += "<table>"
+            $htmlContent += "<tr><th>Line Number</th><th>Source</th><th>Destination</th></tr>"
+
+            foreach ($result in $comparisonResult) {
+                $lineNumber = $result.InputObject
+                $sourceLine = ($sourceContent | Select-String -Pattern $lineNumber).Line
+                $destinationLine = ($destinationContent | Select-String -Pattern $lineNumber).Line
+
+                $htmlContent += "<tr><td>$lineNumber</td><td>$sourceLine</td><td>$destinationLine</td></tr>"
+            }
+
+            $htmlContent += "</table>"
+        } else {
+            $htmlContent += "<h2>One or both files not found: $sourceFile and $destinationFile</h2>"
+        }
+    }
+
+    # Close HTML content
+    $htmlContent += @"
+</body>
+</html>
+"@
+
+    # Output the HTML content to a file
+    $reportPath = "C:\Path\To\Report\FileComparisonReport.html"
+    $htmlContent | Out-File -FilePath $reportPath -Encoding utf8
+
+    Write-Output "Report generated at $reportPath"
+}
+
+# Execute the function with the defined file pairs
+Compare-FilesAndGenerateReport -FilePairs $filePairs
