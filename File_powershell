@@ -2264,27 +2264,31 @@ function Compare-FilesAndGenerateReport {
         $sourceFile = $pair.Source
         $destinationFile = $pair.Destination
 
-        if (Test-Path $sourceFile -and Test-Path $destinationFile) {
-            $sourceContent = Get-Content $sourceFile
-            $destinationContent = Get-Content $destinationFile
+        if (Test-Path $sourceFile) {
+            if (Test-Path $destinationFile) {
+                $sourceContent = Get-Content $sourceFile
+                $destinationContent = Get-Content $destinationFile
 
-            $comparisonResult = Compare-Object -ReferenceObject $sourceContent -DifferenceObject $destinationContent
+                $comparisonResult = Compare-Object -ReferenceObject $sourceContent -DifferenceObject $destinationContent
 
-            $htmlContent += "<h2>Comparing $sourceFile and $destinationFile</h2>"
-            $htmlContent += "<table>"
-            $htmlContent += "<tr><th>Line Number</th><th>Source</th><th>Destination</th></tr>"
+                $htmlContent += "<h2>Comparing $sourceFile and $destinationFile</h2>"
+                $htmlContent += "<table>"
+                $htmlContent += "<tr><th>Line Number</th><th>Source</th><th>Destination</th></tr>"
 
-            foreach ($result in $comparisonResult) {
-                $lineNumber = $result.InputObject
-                $sourceLine = ($sourceContent | Select-String -Pattern $lineNumber).Line
-                $destinationLine = ($destinationContent | Select-String -Pattern $lineNumber).Line
+                foreach ($result in $comparisonResult) {
+                    $lineNumber = $result.InputObject
+                    $sourceLine = ($sourceContent | Select-String -Pattern $lineNumber).Line
+                    $destinationLine = ($destinationContent | Select-String -Pattern $lineNumber).Line
 
-                $htmlContent += "<tr><td>$lineNumber</td><td>$sourceLine</td><td>$destinationLine</td></tr>"
+                    $htmlContent += "<tr><td>$lineNumber</td><td>$sourceLine</td><td>$destinationLine</td></tr>"
+                }
+
+                $htmlContent += "</table>"
+            } else {
+                $htmlContent += "<h2>Destination file not found: $destinationFile</h2>"
             }
-
-            $htmlContent += "</table>"
         } else {
-            $htmlContent += "<h2>One or both files not found: $sourceFile and $destinationFile</h2>"
+            $htmlContent += "<h2>Source file not found: $sourceFile</h2>"
         }
     }
 
