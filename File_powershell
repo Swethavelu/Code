@@ -2230,80 +2230,110 @@ foreach ($sourceDir in $sourceDirectories) {
 Write-Host "Web.config files copied to $destinationDirectory with appended numbers."
 
 File Comparers
-# Define the file pairs for comparison
+# Define the list of file pairs with source and destination paths
 $filePairs = @(
     @{ Source = "C:\Path\To\Source\File1.web.config"; Destination = "C:\Path\To\Destination\File1.web.config" },
     @{ Source = "C:\Path\To\Source\File2.web.config"; Destination = "C:\Path\To\Destination\File2.web.config" }
 )
 
-# Function to compare files and generate HTML report
-function Compare-FilesAndGenerateReport {
-    param (
-        [Parameter(Mandatory=$true)]
-        [array]$FilePairs
-    )
+$outputReportPath = "C:\ComparisonReport.html" # Default output HTML report path
 
-    # Initialize HTML content
-    $htmlContent = @"
-<!DOCTYPE html>
+# Create an array to store the comparison results
+$results = @()
+
+# Loop through each pair of source and destination files
+foreach ($pair in $filePairs) {
+    $sourceFilePath = $pair.Source
+    $destinationFilePath = $pair.Destination
+
+    # Check if both source and destination files exist
+    if (Test-Path $sourceFilePath -and Test-Path $destinationFilePath) {
+        
+        # Read the content of source and destination files
+        $sourceFileContent = Get-Content $sourceFilePath
+        $destinationFileContent = Get-Content $destinationFilePath
+        
+        # Compare file contents and generate the HTML difference report
+        $mismatchSourceLines = @()
+        $mismatchDestinationLines = @()
+        for ($i = 0; $i -lt [math]::Min($sourceFileContent.Count, $destinationFileContent.Count); $i++) {
+            if ($sourceFileContent[$i] -ne $destinationFileContent[$i]) {
+                $mismatchSourceLines += ($i + 1).ToString() + ". " + $sourceFileContent[$i] + "`n"
+                $mismatchDestinationLines += ($i + 1).ToString() + ". " + $destinationFileContent[$i] + "`n"
+            }
+        }
+        
+        # Handle cases where the files have different lengths
+        if ($sourceFileContent.Count -gt $destinationFileContent.Count) {
+            for ($i = $destinationFileContent.Count; $i -lt $sourceFileContent.Count; $i++) {
+                $mismatchSourceLines += ($i + 1).ToString() + ". " + $sourceFileContent[$i] + "`n"
+            }
+        } elseif ($sourceFileContent.Count -lt $destinationFileContent.Count) {
+            for ($i = $sourceFileContent.Count; $i -lt $destinationFileContent.Count; $i++) {
+                $mismatchDestinationLines += ($i + 1).ToString() + ". " + $destinationFileContent[$i] + "`n"
+            }
+        }
+        
+        # Check if the file contents are identical
+        if ($mismatchSourceLines.Count -eq 0 -and $mismatchDestinationLines.Count -eq 0) {
+            $result = "Matching"
+        } else {
+            $result = "Not Matching"
+        }
+        
+        # Add the comparison result to the results array
+        $results += [PSCustomObject]@{
+            FileName = [System.IO.Path]::GetFileName($sourceFilePath)
+            SourceFile = $sourceFilePath
+            DestinationFile = $destinationFilePath
+            Result = $result
+            SourceMismatchLines = $mismatchSourceLines -join "`n"
+            DestinationMismatchLines = $mismatchDestinationLines -join "`n"
+        }
+    } else {
+        # Handle the case where one or both files do not exist
+        $results += [PSCustomObject]@{
+            FileName = [System.IO.Path]::GetFileName($sourceFilePath)
+            SourceFile = $sourceFilePath
+            DestinationFile = $destinationFilePath
+            Result = "One or both files not found"
+            SourceMismatchLines = ""
+            DestinationMismatchLines = ""
+        }
+    }
+}
+
+# Generate the HTML report
+$htmlReport = @"
 <html>
 <head>
-    <title>File Comparison Report</title>
+    <title>Comparison Report</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { border: 1px solid #dddddd; text-align: left; padding: 8px; }
-        th { background-color: #f2f2f2; }
+        table {
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 5px;
+        }
     </style>
 </head>
 <body>
-    <h1>File Comparison Report</h1>
-"@
-
-    foreach ($pair in $FilePairs) {
-        $sourceFile = $pair.Source
-        $destinationFile = $pair.Destination
-
-        if (Test-Path $sourceFile) {
-            if (Test-Path $destinationFile) {
-                $sourceContent = Get-Content $sourceFile
-                $destinationContent = Get-Content $destinationFile
-
-                $comparisonResult = Compare-Object -ReferenceObject $sourceContent -DifferenceObject $destinationContent
-
-                $htmlContent += "<h2>Comparing $sourceFile and $destinationFile</h2>"
-                $htmlContent += "<table>"
-                $htmlContent += "<tr><th>Line Number</th><th>Source</th><th>Destination</th></tr>"
-
-                foreach ($result in $comparisonResult) {
-                    $lineNumber = $result.InputObject
-                    $sourceLine = ($sourceContent | Select-String -Pattern $lineNumber).Line
-                    $destinationLine = ($destinationContent | Select-String -Pattern $lineNumber).Line
-
-                    $htmlContent += "<tr><td>$lineNumber</td><td>$sourceLine</td><td>$destinationLine</td></tr>"
-                }
-
-                $htmlContent += "</table>"
-            } else {
-                $htmlContent += "<h2>Destination file not found: $destinationFile</h2>"
-            }
-        } else {
-            $htmlContent += "<h2>Source file not found: $sourceFile</h2>"
-        }
-    }
-
-    # Close HTML content
-    $htmlContent += @"
+    <h1>Comparison Report</h1>
+    <table>
+        <tr>
+            <th>FileName</th>
+            <th>SourceFile</th>
+            <th>DestinationFile</th>
+            <th>Result</th>
+            <th>Source Mismatch Lines</th>
+            <th>Destination Mismatch Lines</th>
+        </tr>
+"@ + ($results | ConvertTo-Html -Fragment) + @"
+    </table>
 </body>
 </html>
 "@
 
-    # Output the HTML content to a file
-    $reportPath = "C:\Path\To\Report\FileComparisonReport.html"
-    $htmlContent | Out-File -FilePath $reportPath -Encoding utf8
-
-    Write-Output "Report generated at $reportPath"
-}
-
-# Execute the function with the defined file pairs
-Compare-FilesAndGenerateReport -FilePairs $filePairs
+# Output the HTML report to a file
+$htmlReport | Out-File -FilePath $outputReportPath
