@@ -2140,7 +2140,7 @@ function Process-InputCSV {
 
 
 
-July 15 2024
+Folder compare
 # Specify the source directories
 $sourceDirectories = @("C:\Source1", "D:\Source2", "\\Server\Share\Source3")
 
@@ -2198,7 +2198,7 @@ foreach ($sourceDir in $sourceDirectories) {
 Write-Host "File copying completed."
 
 
-july 16
+Folder Copy
 # Define source directories where web.config files are located
 $sourceDirectories = "C:\Source1", "C:\Source2", "C:\Source3"  # Add more directories as needed
 
@@ -2229,7 +2229,7 @@ foreach ($sourceDir in $sourceDirectories) {
 # Display completion message
 Write-Host "Web.config files copied to $destinationDirectory with appended numbers."
 
-July 18 2024
+File Comparers
 # Define the file pairs for comparison
 $filePairs = @(
     @{ Source = "C:\Path\To\Source\File1.web.config"; Destination = "C:\Path\To\Destination\File1.web.config" },
