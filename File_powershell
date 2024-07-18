@@ -2247,7 +2247,7 @@ foreach ($pair in $filePairs) {
     $destinationFilePath = $pair.Destination
 
     # Check if both source and destination files exist
-    if (Test-Path $sourceFilePath -and Test-Path $destinationFilePath) {
+    if ((Test-Path $sourceFilePath) -and (Test-Path $destinationFilePath)) {
         
         # Read the content of source and destination files
         $sourceFileContent = Get-Content $sourceFilePath
