@@ -152,7 +152,7 @@ namespace LoginApp
             this.usernameTextBox = new System.Windows.Forms.TextBox();
             this.passwordTextBox = new System.Windows.Forms.TextBox();
             this.loginButton = new System.Windows.Forms.Button();
-            this.messageLabel = new System.Windows.Forms.Label();
+            this.messageLabel = new System.Windows.Forms.Label(); // Ensure this line is present
             this.SuspendLayout();
             // 
             // usernameLabel
@@ -209,7 +209,7 @@ namespace LoginApp
             // LoginForm
             // 
             this.ClientSize = new System.Drawing.Size(400, 250);
-            this.Controls.Add(this.messageLabel);
+            this.Controls.Add(this.messageLabel); // Ensure this line is present
             this.Controls.Add(this.loginButton);
             this.Controls.Add(this.passwordTextBox);
             this.Controls.Add(this.usernameTextBox);
@@ -229,6 +229,7 @@ namespace LoginApp
         private System.Windows.Forms.Label messageLabel;
     }
 }
+
 
 
 Login form.cs
