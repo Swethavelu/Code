@@ -1,0 +1,142 @@
+private static string DecryptedStringFromBytes(byte[] cipherText, byte[] key, byte iv)
+{
+if(cipherText == Null || cipherText.Length <= 0)
+{
+throw new ArgumentNullException("cipherText");
+}
+if(key == Null || key.Length <= 0)
+{
+throw new ArgumentNullException("key");
+}
+if(iv == Null || iv.Length <= 0)
+{
+throw new ArgumentNullException("key");
+}
+string plaintext = null;
+using (var rijAlg = new Rijndaelmanaged())
+{
+	rijAlg.Mode = CipherMode.CBC;
+	rijAlg.Padding = paddingMpde.PKCS7;
+	rijAlg.FeedbackSize = 128;
+	rijAlg.Key = key;
+	rijAlg.IV = iv;
+	var decrypter = rijAlg.CreateDecryptor(rijAlg.Key, rijAlg.IV)
+	try{
+		using(var msDecrypt = new MemoryStream(cipherText))
+		{
+			using(var csDecrypt = new CryptoStream(msDecrypt, decrypter, CryptoStreamMode.Read))
+			{
+				using(var ssDecrypt = new StreamStream(csDecrypt))
+				{
+					plaintext = srDecypt.ReadToEnd();
+				}
+		}
+		}
+	}
+	catch(Exception ex)
+	{
+		plainText = "keyError";
+	}
+}
+return plaintext;
+}
+public static string DecryptStringAES(string cipherText)
+{
+	var keybytes = Encoding.UTF8.GetBytes("8080808080808080");
+	var iv = Encoding.UTF8.GetBytes("8080808080808080");
+	var encrypted = Convert.Frombase64String(cipherText);
+	var decriptedFromjavascript = DecryptStringFromBytes(encrypted,keybytes,iv);
+	return string.Format(descriptedFromjavasript);
+}
+
+[HttpPost]
+[Route("Login")]
+public asyn task<ActionResult> Login(string Username, String password, string hiddenpass)
+{
+	dynamic mymodel = new ExpandoObject();
+	string repoApiURL, repoApi, userInfo, userinfoApi;
+	dynamic response, userInforesponse;
+	UserInfo userInfo = new UserInfo();
+	LoginViewModel user = new LoginViewModel;
+	var decryptedusername = DecryptStringAES(Username);
+	Logger.Info("Decrypted username" +decryptedusername);
+	try{
+		var decrypted[assword = DecryptStringAES(Password);
+		viewBag.user = decryptedusername;
+		viewBag.password = decryptedpassword;
+		
+		var usrn = decryptedusername;
+		var pass = decryptedpassword;
+		Logger.Info("Username and Password is encrypted");
+		if (usrn.Length == 0)
+		{
+			ViewBag.UsernameError ="username is required";
+			Logger.Error("Username is required");
+		}
+		else if (usrn.Length < 7)
+		{
+			ViewBag.UsernameError ="Username should contain 7 characters";
+			Logger.Error("Username should contain 7 characters");
+		}
+		if (psss.Length == 0)
+		{
+			ViewBag.UsernameError ="password is required";
+			Logger.Error("password is required");
+		}
+		else if (pass.Length > 18 || pass.Length< 8)
+		{
+			ViewBag.UsernameError ="Password should atleast 8 characters and upto 18 characters";
+			Logger.Error("Password should atleast 8 characters and upto 18 characters");
+		}
+else{
+	using (HttpClient client(new HttpClient())
+	{
+		string mergedCredentials = decryptedusername + ":" + decryptedpassword;
+		byte[] bytecredentails = System.Text.UTFEncoding.UTF.GetBytes(mergedCredentials);
+		user.encodedUsernameAndPassword = convert.ToBase64String(bytecredentails);
+		string projectName = ConfigurationManager.AppSettings["projects"];
+		repoApiUrl ="https://scm.com" + projectName;
+		client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",user.encodedusernameAndPassword);
+		reposne = await client.GteAsync(repoApiURL);
+		if((response.IsSuccessStatusCode == false))
+		{
+			if(response.StatusCode == HtppStatusCode.Unauthorized)
+			{
+				ViewBag.access ="Unauthorized! you are not permitted to accesss this site");
+				Logger.Error("Unauthorized! you are not permitted to accesss this site");
+			}
+		}
+		else
+		{
+			userInfo = "https://scm.com"+ decryptedusername;
+			client.DefaultrequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",user.encodedUsernameAndPassword);
+			userInforesponse await Client.GetAsync(userInfo);
+			userimfoApi = await userInforesposne.Content.ReadAsStringAsync();
+			userinof =JsonConvert.DeserializeObject<UserInfo>(userinfoApi);
+			user.dislayName = userinfo.displayName;
+			user.Username = decryptedusername;
+			mymodel.LoginViewModel = user;
+			string id;
+			mymodel.Repo = null;
+			mymodel.RepoName = null;
+			string userobj = JsonConvert.SerializeObject(user);
+			TempData["Login"] = JsonConvert.DeserializeObject<LoginViewModel>(userObj);
+			TempData.Keep();
+			Logger.Info("Redirected to ListRepo page");
+			if(TempData["Login"] != null)
+			{
+				return RedirectActio("ListRepo","Home");
+			}
+			else{
+				return redirectToAction("Login","Account");
+			}
+		}
+	}
+}
+	}
+	catch(Exception e)
+	{
+		Logger.Error(e);
+	}
+	return View();
+}
