@@ -613,4 +613,29 @@ namespace LoginApp
     }
 }
 
+//Configurationmanager.cs
+using System.Collections.Specialized;
+using System.Configuration;
 
+namespace LoginApp
+{
+    public static class CustomConfigurationManager
+    {
+        private static NameValueCollection appSettings;
+
+        static CustomConfigurationManager()
+        {
+            appSettings = ConfigurationManager.AppSettings;
+        }
+
+        public static string GetAppSetting(string key)
+        {
+            if (appSettings == null)
+            {
+                throw new ConfigurationErrorsException("AppSettings is null.");
+            }
+
+            return appSettings[key];
+        }
+    }
+}
