@@ -492,3 +492,194 @@ namespace LoginApp
         public string displayName { get; set; }
     }
 }
+
+Full Login Form.cs
+using System;
+using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using Newtonsoft.Json;
+
+namespace LoginApp
+{
+    public partial class LoginForm : Form
+    {
+        public LoginForm()
+        {
+            InitializeComponent();
+        }
+
+        private async void LoginButton_Click(object sender, EventArgs e)
+        {
+            string username = usernameTextBox.Text;
+            string password = passwordTextBox.Text;
+
+            if (string.IsNullOrEmpty(username))
+            {
+                messageLabel.Text = "Username is required";
+                return;
+            }
+            else if (username.Length < 7)
+            {
+                messageLabel.Text = "Username should contain at least 7 characters";
+                return;
+            }
+
+            if (string.IsNullOrEmpty(password))
+            {
+                messageLabel.Text = "Password is required";
+                return;
+            }
+            else if (password.Length < 8 || password.Length > 18)
+            {
+                messageLabel.Text = "Password should be between 8 and 18 characters";
+                return;
+            }
+
+            var decryptedUsername = DecryptStringAES(username);
+            var decryptedPassword = DecryptStringAES(password);
+
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    string mergedCredentials = decryptedUsername + ":" + decryptedPassword;
+                    byte[] byteCredentials = Encoding.UTF8.GetBytes(mergedCredentials);
+                    string encodedCredentials = Convert.ToBase64String(byteCredentials);
+
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encodedCredentials);
+
+                    string projectName = System.Configuration.ConfigurationManager.AppSettings["projects"];
+                    string repoApiUrl = "https://SCM.com/" + projectName;
+                    HttpResponseMessage response = await client.GetAsync(repoApiUrl);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                        {
+                            messageLabel.Text = "Unauthorized! You are not permitted to access this site";
+                        }
+                        else
+                        {
+                            messageLabel.Text = "Login failed!";
+                        }
+                    }
+                    else
+                    {
+                        string userInfoUrl = "https://SCM.com/" + decryptedUsername;
+                        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encodedCredentials);
+                        HttpResponseMessage userInfoResponse = await client.GetAsync(userInfoUrl);
+
+                        string userInfoJson = await userInfoResponse.Content.ReadAsStringAsync();
+                        var userInfo = JsonConvert.DeserializeObject<UserInfo>(userInfoJson);
+
+                        // Handle successful login
+                        messageLabel.Text = "Login successful!";
+                        userInfoLabel.Text = $"Welcome, {userInfo.displayName}";
+
+                        // You can navigate to another form or perform further actions
+                        // Example: new MainForm().Show();
+                        // this.Hide();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                messageLabel.Text = "An error occurred: " + ex.Message;
+            }
+        }
+
+        private static string DecryptStringFromBytes(byte[] cipherText, byte[] key, byte[] iv)
+        {
+            if (cipherText == null || cipherText.Length <= 0)
+            {
+                throw new ArgumentNullException(nameof(cipherText));
+            }
+            if (key == null || key.Length <= 0)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+            if (iv == null || iv.Length <= 0)
+            {
+                throw new ArgumentNullException(nameof(iv));
+            }
+
+            string plaintext = null;
+            using (var rijAlg = new RijndaelManaged())
+            {
+                rijAlg.Mode = CipherMode.CBC;
+                rijAlg.Padding = PaddingMode.PKCS7;
+                rijAlg.FeedbackSize = 128;
+                rijAlg.Key = key;
+                rijAlg.IV = iv;
+                var decrypter = rijAlg.CreateDecryptor(rijAlg.Key, rijAlg.IV);
+
+                try
+                {
+                    using (var msDecrypt = new MemoryStream(cipherText))
+                    {
+                        using (var csDecrypt = new CryptoStream(msDecrypt, decrypter, CryptoStreamMode.Read))
+                        {
+                            using (var srDecrypt = new StreamReader(csDecrypt))
+                            {
+                                plaintext = srDecrypt.ReadToEnd();
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    plaintext = "keyError";
+                }
+            }
+            return plaintext;
+        }
+
+        public static string DecryptStringAES(string cipherText)
+        {
+            try
+            {
+                // Log the input cipherText for debugging
+                Console.WriteLine("Decrypting: " + cipherText);
+
+                // Ensure the string is trimmed of any extraneous whitespace
+                cipherText = cipherText.Trim();
+
+                var keybytes = Encoding.UTF8.GetBytes("8080808080808080");
+                var iv = Encoding.UTF8.GetBytes("8080808080808080");
+
+                // Validate if the input is a proper Base64 string
+                if (cipherText.Length % 4 != 0 || cipherText.Contains(" ") || cipherText.Contains("\t") || cipherText.Contains("\r") || cipherText.Contains("\n"))
+                {
+                    throw new FormatException("Input is not a valid Base64 string.");
+                }
+
+                var encrypted = Convert.FromBase64String(cipherText);
+                var decryptedFromJavascript = DecryptStringFromBytes(encrypted, keybytes, iv);
+
+                return decryptedFromJavascript;
+            }
+            catch (FormatException ex)
+            {
+                // Handle specific format exception
+                Console.WriteLine("Invalid Base64 string: " + ex.Message);
+                return "keyError";
+            }
+            catch (Exception ex)
+            {
+                // Handle other exceptions
+                Console.WriteLine("Decryption error: " + ex.Message);
+                return "keyError";
+            }
+        }
+    }
+
+    public class UserInfo
+    {
+        public string displayName { get; set; }
+    }
+}
