@@ -502,6 +502,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json;
+using System.Configuration;
+using System.Collections.Specialized;
 
 namespace LoginApp
 {
@@ -549,7 +551,22 @@ namespace LoginApp
 
                     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encodedCredentials);
 
-                    string projectName = System.Configuration.ConfigurationManager.AppSettings["projects"];
+                    NameValueCollection appSettings = ConfigurationManager.AppSettings;
+
+                    if (appSettings == null)
+                    {
+                        messageLabel.Text = "App settings are not configured properly.";
+                        return;
+                    }
+
+                    string projectName = appSettings["projects"];
+
+                    if (string.IsNullOrEmpty(projectName))
+                    {
+                        messageLabel.Text = "Project name is not configured.";
+                        return;
+                    }
+
                     string repoApiUrl = "https://SCM.com/" + projectName;
                     HttpResponseMessage response = await client.GetAsync(repoApiUrl);
 
@@ -595,4 +612,5 @@ namespace LoginApp
         public string displayName { get; set; }
     }
 }
+
 
