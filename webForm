@@ -1,142 +1,204 @@
-private static string DecryptedStringFromBytes(byte[] cipherText, byte[] key, byte iv)
+Form1.cs
+using System;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using Newtonsoft.Json;
+
+namespace LoginApp
 {
-if(cipherText == Null || cipherText.Length <= 0)
-{
-throw new ArgumentNullException("cipherText");
-}
-if(key == Null || key.Length <= 0)
-{
-throw new ArgumentNullException("key");
-}
-if(iv == Null || iv.Length <= 0)
-{
-throw new ArgumentNullException("key");
-}
-string plaintext = null;
-using (var rijAlg = new Rijndaelmanaged())
-{
-	rijAlg.Mode = CipherMode.CBC;
-	rijAlg.Padding = paddingMpde.PKCS7;
-	rijAlg.FeedbackSize = 128;
-	rijAlg.Key = key;
-	rijAlg.IV = iv;
-	var decrypter = rijAlg.CreateDecryptor(rijAlg.Key, rijAlg.IV)
-	try{
-		using(var msDecrypt = new MemoryStream(cipherText))
-		{
-			using(var csDecrypt = new CryptoStream(msDecrypt, decrypter, CryptoStreamMode.Read))
-			{
-				using(var ssDecrypt = new StreamStream(csDecrypt))
-				{
-					plaintext = srDecypt.ReadToEnd();
-				}
-		}
-		}
-	}
-	catch(Exception ex)
-	{
-		plainText = "keyError";
-	}
-}
-return plaintext;
-}
-public static string DecryptStringAES(string cipherText)
-{
-	var keybytes = Encoding.UTF8.GetBytes("8080808080808080");
-	var iv = Encoding.UTF8.GetBytes("8080808080808080");
-	var encrypted = Convert.Frombase64String(cipherText);
-	var decriptedFromjavascript = DecryptStringFromBytes(encrypted,keybytes,iv);
-	return string.Format(descriptedFromjavasript);
+    public partial class LoginForm : Form
+    {
+        public LoginForm()
+        {
+            InitializeComponent();
+        }
+
+        private async void LoginButton_Click(object sender, EventArgs e)
+        {
+            string username = usernameTextBox.Text;
+            string password = passwordTextBox.Text;
+
+            if (string.IsNullOrEmpty(username))
+            {
+                messageLabel.Text = "Username is required";
+                return;
+            }
+            else if (username.Length < 7)
+            {
+                messageLabel.Text = "Username should contain at least 7 characters";
+                return;
+            }
+
+            if (string.IsNullOrEmpty(password))
+            {
+                messageLabel.Text = "Password is required";
+                return;
+            }
+            else if (password.Length < 8 || password.Length > 18)
+            {
+                messageLabel.Text = "Password should be between 8 and 18 characters";
+                return;
+            }
+
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+                    string mergedCredentials = username + ":" + password;
+                    byte[] byteCredentials = Encoding.UTF8.GetBytes(mergedCredentials);
+                    string encodedCredentials = Convert.ToBase64String(byteCredentials);
+
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encodedCredentials);
+
+                    string projectName = CustomConfigurationManager.GetAppSetting("projects");
+
+                    if (string.IsNullOrEmpty(projectName))
+                    {
+                        messageLabel.Text = "Project name is not configured.";
+                        return;
+                    }
+
+                    string repoApiUrl = "https://SCM.com/" + projectName;
+                    HttpResponseMessage response = await client.GetAsync(repoApiUrl);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                        {
+                            messageLabel.Text = "Unauthorized! You are not permitted to access this site";
+                        }
+                        else
+                        {
+                            messageLabel.Text = "Login failed!";
+                        }
+                    }
+                    else
+                    {
+                        string userInfoUrl = "https://SCM.com/" + username;
+                        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encodedCredentials);
+                        HttpResponseMessage userInfoResponse = await client.GetAsync(userInfoUrl);
+
+                        string userInfoJson = await userInfoResponse.Content.ReadAsStringAsync();
+                        var userInfo = JsonConvert.DeserializeObject<UserInfo>(userInfoJson);
+
+                        // Handle successful login
+                        messageLabel.Text = "Login successful!";
+                        userInfoLabel.Text = $"Welcome, {userInfo.displayName}";
+
+                        // Navigate to Form2
+                        var form2 = new Form2();
+                        form2.Show();
+                        this.Hide();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                messageLabel.Text = "An error occurred: " + ex.Message;
+            }
+        }
+    }
+
+    public class UserInfo
+    {
+        public string displayName { get; set; }
+    }
 }
 
-[HttpPost]
-[Route("Login")]
-public asyn task<ActionResult> Login(string Username, String password, string hiddenpass)
+Form2.cs
+namespace LoginApp
 {
-	dynamic mymodel = new ExpandoObject();
-	string repoApiURL, repoApi, userInfo, userinfoApi;
-	dynamic response, userInforesponse;
-	UserInfo userInfo = new UserInfo();
-	LoginViewModel user = new LoginViewModel;
-	var decryptedusername = DecryptStringAES(Username);
-	Logger.Info("Decrypted username" +decryptedusername);
-	try{
-		var decrypted[assword = DecryptStringAES(Password);
-		viewBag.user = decryptedusername;
-		viewBag.password = decryptedpassword;
-		
-		var usrn = decryptedusername;
-		var pass = decryptedpassword;
-		Logger.Info("Username and Password is encrypted");
-		if (usrn.Length == 0)
-		{
-			ViewBag.UsernameError ="username is required";
-			Logger.Error("Username is required");
-		}
-		else if (usrn.Length < 7)
-		{
-			ViewBag.UsernameError ="Username should contain 7 characters";
-			Logger.Error("Username should contain 7 characters");
-		}
-		if (psss.Length == 0)
-		{
-			ViewBag.UsernameError ="password is required";
-			Logger.Error("password is required");
-		}
-		else if (pass.Length > 18 || pass.Length< 8)
-		{
-			ViewBag.UsernameError ="Password should atleast 8 characters and upto 18 characters";
-			Logger.Error("Password should atleast 8 characters and upto 18 characters");
-		}
-else{
-	using (HttpClient client(new HttpClient())
-	{
-		string mergedCredentials = decryptedusername + ":" + decryptedpassword;
-		byte[] bytecredentails = System.Text.UTFEncoding.UTF.GetBytes(mergedCredentials);
-		user.encodedUsernameAndPassword = convert.ToBase64String(bytecredentails);
-		string projectName = ConfigurationManager.AppSettings["projects"];
-		repoApiUrl ="https://scm.com" + projectName;
-		client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",user.encodedusernameAndPassword);
-		reposne = await client.GteAsync(repoApiURL);
-		if((response.IsSuccessStatusCode == false))
-		{
-			if(response.StatusCode == HtppStatusCode.Unauthorized)
-			{
-				ViewBag.access ="Unauthorized! you are not permitted to accesss this site");
-				Logger.Error("Unauthorized! you are not permitted to accesss this site");
-			}
-		}
-		else
-		{
-			userInfo = "https://scm.com"+ decryptedusername;
-			client.DefaultrequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",user.encodedUsernameAndPassword);
-			userInforesponse await Client.GetAsync(userInfo);
-			userimfoApi = await userInforesposne.Content.ReadAsStringAsync();
-			userinof =JsonConvert.DeserializeObject<UserInfo>(userinfoApi);
-			user.dislayName = userinfo.displayName;
-			user.Username = decryptedusername;
-			mymodel.LoginViewModel = user;
-			string id;
-			mymodel.Repo = null;
-			mymodel.RepoName = null;
-			string userobj = JsonConvert.SerializeObject(user);
-			TempData["Login"] = JsonConvert.DeserializeObject<LoginViewModel>(userObj);
-			TempData.Keep();
-			Logger.Info("Redirected to ListRepo page");
-			if(TempData["Login"] != null)
-			{
-				return RedirectActio("ListRepo","Home");
-			}
-			else{
-				return redirectToAction("Login","Account");
-			}
-		}
-	}
-}
-	}
-	catch(Exception e)
-	{
-		Logger.Error(e);
-	}
-	return View();
+    partial class Form2
+    {
+        private System.ComponentModel.IContainer components = null;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        private void InitializeComponent()
+        {
+            this.branchNameLabel = new System.Windows.Forms.Label();
+            this.branchNameTextBox = new System.Windows.Forms.TextBox();
+            this.batchLabel = new System.Windows.Forms.Label();
+            this.batchComboBox = new System.Windows.Forms.ComboBox();
+            this.getRepositoryButton = new System.Windows.Forms.Button();
+            this.SuspendLayout();
+            // 
+            // branchNameLabel
+            // 
+            this.branchNameLabel.AutoSize = true;
+            this.branchNameLabel.Location = new System.Drawing.Point(13, 13);
+            this.branchNameLabel.Name = "branchNameLabel";
+            this.branchNameLabel.Size = new System.Drawing.Size(78, 13);
+            this.branchNameLabel.TabIndex = 0;
+            this.branchNameLabel.Text = "Branch Name *";
+            // 
+            // branchNameTextBox
+            // 
+            this.branchNameTextBox.Location = new System.Drawing.Point(97, 10);
+            this.branchNameTextBox.Name = "branchNameTextBox";
+            this.branchNameTextBox.Size = new System.Drawing.Size(200, 20);
+            this.branchNameTextBox.TabIndex = 1;
+            // 
+            // batchLabel
+            // 
+            this.batchLabel.AutoSize = true;
+            this.batchLabel.Location = new System.Drawing.Point(303, 13);
+            this.batchLabel.Name = "batchLabel";
+            this.batchLabel.Size = new System.Drawing.Size(37, 13);
+            this.batchLabel.TabIndex = 2;
+            this.batchLabel.Text = "Batch*";
+            // 
+            // batchComboBox
+            // 
+            this.batchComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.batchComboBox.FormattingEnabled = true;
+            this.batchComboBox.Items.AddRange(new object[] {
+            "Pre Batch",
+            "Post Batch",
+            "Both"});
+            this.batchComboBox.Location = new System.Drawing.Point(346, 10);
+            this.batchComboBox.Name = "batchComboBox";
+            this.batchComboBox.Size = new System.Drawing.Size(121, 21);
+            this.batchComboBox.TabIndex = 3;
+            // 
+            // getRepositoryButton
+            // 
+            this.getRepositoryButton.Location = new System.Drawing.Point(473, 8);
+            this.getRepositoryButton.Name = "getRepositoryButton";
+            this.getRepositoryButton.Size = new System.Drawing.Size(100, 23);
+            this.getRepositoryButton.TabIndex = 4;
+            this.getRepositoryButton.Text = "Get Repository";
+            this.getRepositoryButton.UseVisualStyleBackColor = true;
+            // 
+            // Form2
+            // 
+            this.ClientSize = new System.Drawing.Size(584, 61);
+            this.Controls.Add(this.getRepositoryButton);
+            this.Controls.Add(this.batchComboBox);
+            this.Controls.Add(this.batchLabel);
+            this.Controls.Add(this.branchNameTextBox);
+            this.Controls.Add(this.branchNameLabel);
+            this.Name = "Form2";
+            this.Text = "Search Criteria";
+            this.ResumeLayout(false);
+            this.PerformLayout();
+
+        }
+
+        private System.Windows.Forms.Label branchNameLabel;
+        private System.Windows.Forms.TextBox branchNameTextBox;
+        private System.Windows.Forms.Label batchLabel;
+        private System.Windows.Forms.ComboBox batchComboBox;
+        private System.Windows.Forms.Button getRepositoryButton;
+    }
 }
