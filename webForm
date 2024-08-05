@@ -202,3 +202,131 @@ namespace LoginApp
         private System.Windows.Forms.Button getRepositoryButton;
     }
 }
+
+
+//updated
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.IO;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using Newtonsoft.Json;
+
+public static class ListExtensions
+{
+    public static List<T> ByIndex<T>(this List<T> value, int startIndex, int endIndex) => value.GetRange(startIndex, endIndex);
+}
+
+public static class TempDataExtension
+{
+    public static void Put<T>(this IDictionary<string, object> tempData, string key, List<T> value) where T : class
+    {
+        string userObj = JsonConvert.SerializeObject(value);
+        tempData[key] = JsonConvert.DeserializeObject<List<T>>(userObj);
+    }
+
+    public static List<T> Get<T>(this IDictionary<string, object> tempData, string key) where T : class
+    {
+        if (tempData.TryGetValue(key, out var o))
+        {
+            string getObj = JsonConvert.SerializeObject(o);
+            return o == null ? null : JsonConvert.DeserializeObject<List<T>>(getObj);
+        }
+        return null;
+    }
+}
+
+public partial class Form2 : Form
+{
+    private IDictionary<string, object> TempData = new Dictionary<string, object>();
+
+    public Form2()
+    {
+        InitializeComponent();
+    }
+
+    private string GetProjectName()
+    {
+        return ConfigurationManager.AppSettings["projectName"];
+    }
+
+    private string GetDeploymentRepo()
+    {
+        return ConfigurationManager.AppSettings["deploymentRepo"];
+    }
+
+    private int GetLimit()
+    {
+        return int.Parse(ConfigurationManager.AppSettings["limit"]);
+    }
+
+    private string GetEncodedCredentials()
+    {
+        string mergedCredentials = string.Format("username:password", "UserName", "Password");
+        byte[] byteCredentials = Encoding.UTF8.GetBytes(mergedCredentials);
+        return Convert.ToBase64String(byteCredentials);
+    }
+
+    private List<SelectListItem> ToSelectList(DataTable table, string valueField, string textField)
+    {
+        var list = new List<SelectListItem>();
+        foreach (DataRow row in table.Rows)
+        {
+            list.Add(new SelectListItem
+            {
+                Text = row[textField].ToString(),
+                Value = row[valueField].ToString()
+            });
+        }
+        return list;
+    }
+
+    private async Task<Repo> GetPrSummaryAsync(string id)
+    {
+        return await RepoPRSummary(id);
+    }
+
+    private async Task<Repo> RepoPRSummary(string id)
+    {
+        string loginStr = ConvertLoginObjectToString();
+        var loginViewModel = JsonConvert.DeserializeObject<LoginViewModel>(loginStr);
+
+        using (HttpClient client = new HttpClient())
+        {
+            string pullRequestApiUrl = $"https://scm{GetProjectName()}/repos/{id}/pull-request/";
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", loginViewModel.EncodedUsernameAndPassword);
+
+            HttpResponseMessage response = await client.GetAsync(pullRequestApiUrl);
+            string createPrApi = await response.Content.ReadAsStringAsync();
+
+            return JsonConvert.DeserializeObject<Repo>(createPrApi);
+        }
+    }
+
+    private string ConvertLoginObjectToString()
+    {
+        var loginDes = (LoginViewModel)TempData["login"];
+        return JsonConvert.SerializeObject(loginDes);
+    }
+
+    // Example method to handle a button click event that triggers ListRepo logic
+    private async void btnListRepo_Click(object sender, EventArgs e)
+    {
+        // Your logic to handle ListRepo
+        // For example, you can call your methods like GetPrSummaryAsync, etc.
+    }
+}
+
+// Example classes used in the original code, adapted for WinForms
+public class Repo { }
+public class RepoInputModel { }
+public class LoginViewModel { public string EncodedUsernameAndPassword { get; set; } }
+public class SelectListItem
+{
+    public string Text { get; set; }
+    public string Value { get; set; }
+}
