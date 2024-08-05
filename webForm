@@ -207,126 +207,235 @@ namespace LoginApp
 //updated
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
-using System.IO;
+using System.Dynamic;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json;
 
-public static class ListExtensions
+namespace WindowsFormsApp
 {
-    public static List<T> ByIndex<T>(this List<T> value, int startIndex, int endIndex) => value.GetRange(startIndex, endIndex);
-}
-
-public static class TempDataExtension
-{
-    public static void Put<T>(this IDictionary<string, object> tempData, string key, List<T> value) where T : class
+    public static class ListExtensions
     {
-        string userObj = JsonConvert.SerializeObject(value);
-        tempData[key] = JsonConvert.DeserializeObject<List<T>>(userObj);
+        public static List<T> ByIndex<T>(this List<T> value, int startIndex, int endIndex)
+        {
+            return value.GetRange(startIndex, endIndex);
+        }
     }
 
-    public static List<T> Get<T>(this IDictionary<string, object> tempData, string key) where T : class
+    public static class TempDataExtension
     {
-        if (tempData.TryGetValue(key, out var o))
+        public static void Put<T>(this Dictionary<string, object> tempData, string key, List<T> value) where T : class
         {
+            string userObj = JsonConvert.SerializeObject(value);
+            tempData[key] = JsonConvert.DeserializeObject<List<T>>(userObj);
+        }
+
+        public static List<T> Get<T>(this Dictionary<string, object> tempData, string key) where T : class
+        {
+            tempData.TryGetValue(key, out object o);
+            if (o == null)
+                return null;
+
             string getObj = JsonConvert.SerializeObject(o);
-            return o == null ? null : JsonConvert.DeserializeObject<List<T>>(getObj);
+            return JsonConvert.DeserializeObject<List<T>>(getObj);
         }
-        return null;
-    }
-}
-
-public partial class Form2 : Form
-{
-    private IDictionary<string, object> TempData = new Dictionary<string, object>();
-
-    public Form2()
-    {
-        InitializeComponent();
     }
 
-    private string GetProjectName()
+    public partial class MainForm : Form
     {
-        return ConfigurationManager.AppSettings["projectName"];
-    }
+        private Dictionary<string, object> TempData = new Dictionary<string, object>();
 
-    private string GetDeploymentRepo()
-    {
-        return ConfigurationManager.AppSettings["deploymentRepo"];
-    }
-
-    private int GetLimit()
-    {
-        return int.Parse(ConfigurationManager.AppSettings["limit"]);
-    }
-
-    private string GetEncodedCredentials()
-    {
-        string mergedCredentials = string.Format("username:password", "UserName", "Password");
-        byte[] byteCredentials = Encoding.UTF8.GetBytes(mergedCredentials);
-        return Convert.ToBase64String(byteCredentials);
-    }
-
-    private List<SelectListItem> ToSelectList(DataTable table, string valueField, string textField)
-    {
-        var list = new List<SelectListItem>();
-        foreach (DataRow row in table.Rows)
+        public MainForm()
         {
-            list.Add(new SelectListItem
+            InitializeComponent();
+        }
+
+        private string GetProjectName()
+        {
+            return ConfigurationManager.AppSettings["projectName"];
+        }
+
+        private string GetDeploymentRepo()
+        {
+            return ConfigurationManager.AppSettings["deploymentRepo"];
+        }
+
+        private int GetLimit()
+        {
+            return int.Parse(ConfigurationManager.AppSettings["limit"]);
+        }
+
+        private string GetEncodedCredentials()
+        {
+            string mergedCredentials = string.Format("{0}:{1}", "UserName", "Password");
+            byte[] byteCredentials = Encoding.UTF8.GetBytes(mergedCredentials);
+            return Convert.ToBase64String(byteCredentials);
+        }
+
+        private List<SelectListItem> ToSelectList(DataTable table, string valueField, string textField)
+        {
+            List<SelectListItem> list = new List<SelectListItem>();
+            foreach (DataRow row in table.Rows)
             {
-                Text = row[textField].ToString(),
-                Value = row[valueField].ToString()
-            });
+                list.Add(new SelectListItem()
+                {
+                    Text = row[textField].ToString(),
+                    Value = row[valueField].ToString()
+                });
+            }
+            return list;
         }
-        return list;
-    }
 
-    private async Task<Repo> GetPrSummaryAsync(string id)
-    {
-        return await RepoPRSummary(id);
-    }
-
-    private async Task<Repo> RepoPRSummary(string id)
-    {
-        string loginStr = ConvertLoginObjectToString();
-        var loginViewModel = JsonConvert.DeserializeObject<LoginViewModel>(loginStr);
-
-        using (HttpClient client = new HttpClient())
+        private async Task<Repo> GetPrSummaryAsync(string id, object login)
         {
-            string pullRequestApiUrl = $"https://scm{GetProjectName()}/repos/{id}/pull-request/";
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", loginViewModel.EncodedUsernameAndPassword);
-
-            HttpResponseMessage response = await client.GetAsync(pullRequestApiUrl);
-            string createPrApi = await response.Content.ReadAsStringAsync();
-
-            return JsonConvert.DeserializeObject<Repo>(createPrApi);
+            return await RepoPRSummary(id);
         }
+
+        private async Task<Repo> RepoPRSummary(string id)
+        {
+            string loginStr = ConvertLoginObjectToString();
+            LoginViewModel login = JsonConvert.DeserializeObject<LoginViewModel>(loginStr);
+            Repo repo = new Repo();
+
+            using (HttpClient client = new HttpClient())
+            {
+                string pullRequestApiUrl = $"https://scm{GetProjectName()}/repos/{id}/pull-request/";
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", login.EncodedUsernameAndPassword);
+                HttpResponseMessage response = await client.GetAsync(pullRequestApiUrl);
+                string createPrApi = await response.Content.ReadAsStringAsync();
+                repo = JsonConvert.DeserializeObject<Repo>(createPrApi);
+            }
+
+            return repo;
+        }
+
+        private string ConvertLoginObjectToString()
+        {
+            LoginViewModel login = (LoginViewModel)TempData["login"];
+            return JsonConvert.SerializeObject(login);
+        }
+
+        private async Task<BatchJson> BatchApi(FileContent fileContent, HttpClient client, string fileContentApi)
+        {
+            BatchJson batchJson = new BatchJson();
+            HttpResponseMessage response = await client.GetAsync(fileContentApi);
+            string repoApi = await response.Content.ReadAsStringAsync();
+            if (response.IsSuccessStatusCode)
+            {
+                batchJson = JsonConvert.DeserializeObject<BatchJson>(repoApi);
+            }
+            return batchJson;
+        }
+
+        private async Task<Repo> FetchReposFromApi(LoginViewModel login, string repoLink, int repoNextPageStart)
+        {
+            Repo repository = new Repo();
+            using (HttpClient client = new HttpClient())
+            {
+                string repositoryUrl = $"{repoLink}?start={repoNextPageStart}&limit={GetLimit()}";
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", login.EncodedUsernameAndPassword);
+                HttpResponseMessage response = await client.GetAsync(repositoryUrl);
+                string repositoryApi = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                {
+                    repository = JsonConvert.DeserializeObject<Repo>(repositoryApi);
+                }
+            }
+            return repository;
+        }
+
+        private async Task<ListRepo> ListRepoGetAsync(RepoInputModel repoInputModel, ListRepo listRepo)
+        {
+            if (TempData["login"] == null)
+            {
+                // Redirect to login
+                MessageBox.Show("Please login first.");
+                return null;
+            }
+
+            dynamic myModel = new ExpandoObject();
+            List<RepoName> repoNames = new List<RepoName>();
+            string branchName = repoInputModel.BranchName;
+            dynamic repoName, response1, apiResponse1, response;
+
+            List<Repo> repos = new List<Repo>();
+            Repo repo = new Repo();
+            FileContent fileContent = new FileContent();
+            BatchJson batchJson = new BatchJson();
+
+            string loginStr = ConvertLoginObjectToString();
+            LoginViewModel login = JsonConvert.DeserializeObject<LoginViewModel>(loginStr);
+
+            // Your logic to handle repo listing, etc.
+
+            return listRepo;
+        }
+
+        private async Task<ListRepo> ListRepoPostAsync(RepoInputModel repoInputModel, ListRepo listRepo, FormCollection form)
+        {
+            string loginStr = ConvertLoginObjectToString();
+            LoginViewModel login = JsonConvert.DeserializeObject<LoginViewModel>(loginStr);
+            TempData.Keep("login");
+
+            // Your logic to handle repo listing, etc.
+
+            return listRepo;
+        }
+
+        // Other methods and event handlers for your form...
     }
 
-    private string ConvertLoginObjectToString()
+    // Define other necessary classes
+    public class RepoInputModel
     {
-        var loginDes = (LoginViewModel)TempData["login"];
-        return JsonConvert.SerializeObject(loginDes);
+        public string BranchName { get; set; }
     }
 
-    // Example method to handle a button click event that triggers ListRepo logic
-    private async void btnListRepo_Click(object sender, EventArgs e)
+    public class ListRepo
     {
-        // Your logic to handle ListRepo
-        // For example, you can call your methods like GetPrSummaryAsync, etc.
+        public string BranchName { get; set; }
+        public List<SelectListItem> BatchItems { get; set; }
+        public string Description { get; set; }
+        public LoginViewModel LoginViewModel { get; set; }
     }
+
+    public class SelectListItem
+    {
+        public string Text { get; set; }
+        public string Value { get; set; }
+    }
+
+    public class Repo
+    {
+        // Define properties
+    }
+
+    public class RepoName
+    {
+        // Define properties
+    }
+
+    public class LoginViewModel
+    {
+        public string EncodedUsernameAndPassword { get; set; }
+        // Define other properties
+    }
+
+    public class BatchJson
+    {
+        // Define properties
+    }
+
+    public class FileContent
+    {
+        // Define properties
+    }
+
+    // Additional classes and methods as needed...
 }
 
-// Example classes used in the original code, adapted for WinForms
-public class Repo { }
-public class RepoInputModel { }
-public class LoginViewModel { public string EncodedUsernameAndPassword { get; set; } }
-public class SelectListItem
-{
-    public string Text { get; set; }
-    public string Value { get; set; }
-}
