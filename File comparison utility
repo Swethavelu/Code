@@ -125,3 +125,195 @@ builder.Services.AddSingleton<ConfigComparerService>();
         <span class="oi oi-list-rich" aria-hidden="true"></span> Config Comparison
     </NavLink>
 </li>
+
+
+2
+using System.IO;
+
+public class ConfigComparerService
+{
+    public List<ConfigComparisonResult> CompareConfigFiles(List<(string Source, string Destination)> filePairs)
+    {
+        var results = new List<ConfigComparisonResult>();
+
+        foreach (var pair in filePairs)
+        {
+            string sourceFilePath = pair.Source;
+            string destinationFilePath = pair.Destination;
+
+            if (File.Exists(sourceFilePath) && File.Exists(destinationFilePath))
+            {
+                var sourceFileContent = File.ReadAllLines(sourceFilePath);
+                var destinationFileContent = File.ReadAllLines(destinationFilePath);
+
+                var mismatchSourceLines = new List<string>();
+                var mismatchDestinationLines = new List<string>();
+
+                // Compare file contents line by line
+                int minLineCount = Math.Min(sourceFileContent.Length, destinationFileContent.Length);
+                for (int i = 0; i < minLineCount; i++)
+                {
+                    if (sourceFileContent[i] != destinationFileContent[i])
+                    {
+                        mismatchSourceLines.Add($"{i + 1}. {sourceFileContent[i]}");
+                        mismatchDestinationLines.Add($"{i + 1}. {destinationFileContent[i]}");
+                    }
+                }
+
+                // Handle cases where the files have different lengths
+                if (sourceFileContent.Length > destinationFileContent.Length)
+                {
+                    for (int i = destinationFileContent.Length; i < sourceFileContent.Length; i++)
+                    {
+                        mismatchSourceLines.Add($"{i + 1}. {sourceFileContent[i]}");
+                    }
+                }
+                else if (sourceFileContent.Length < destinationFileContent.Length)
+                {
+                    for (int i = sourceFileContent.Length; i < destinationFileContent.Length; i++)
+                    {
+                        mismatchDestinationLines.Add($"{i + 1}. {destinationFileContent[i]}");
+                    }
+                }
+
+                // Check if the file contents are identical
+                string result = mismatchSourceLines.Count == 0 && mismatchDestinationLines.Count == 0 ? "Matching" : "Not Matching";
+
+                results.Add(new ConfigComparisonResult
+                {
+                    FileName = Path.GetFileName(sourceFilePath),
+                    SourceFile = sourceFilePath,
+                    DestinationFile = destinationFilePath,
+                    Result = result,
+                    SourceMismatchLines = string.Join("\n", mismatchSourceLines),
+                    DestinationMismatchLines = string.Join("\n", mismatchDestinationLines)
+                });
+            }
+            else
+            {
+                // Handle the case where one or both files do not exist
+                results.Add(new ConfigComparisonResult
+                {
+                    FileName = Path.GetFileName(sourceFilePath),
+                    SourceFile = sourceFilePath,
+                    DestinationFile = destinationFilePath,
+                    Result = "One or both files not found",
+                    SourceMismatchLines = string.Empty,
+                    DestinationMismatchLines = string.Empty
+                });
+            }
+        }
+
+        return results;
+    }
+
+    public string GenerateHtmlReport(List<ConfigComparisonResult> results, string outputReportPath)
+    {
+        var htmlReport = @"
+<html>
+<head>
+    <title>Comparison Report</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Comparison Report</h1>
+    <table>
+        <tr>
+            <th>FileName</th>
+            <th>SourceFile</th>
+            <th>DestinationFile</th>
+            <th>Result</th>
+            <th>Source Mismatch Lines</th>
+            <th>Destination Mismatch Lines</th>
+        </tr>";
+
+        foreach (var result in results)
+        {
+            htmlReport += $@"
+        <tr>
+            <td>{result.FileName}</td>
+            <td>{result.SourceFile}</td>
+            <td>{result.DestinationFile}</td>
+            <td>{result.Result}</td>
+            <td>{result.SourceMismatchLines.Replace("\n", "<br />")}</td>
+            <td>{result.DestinationMismatchLines.Replace("\n", "<br />")}</td>
+        </tr>";
+        }
+
+        htmlReport += @"
+    </table>
+</body>
+</html>";
+
+        File.WriteAllText(outputReportPath, htmlReport);
+        return htmlReport;
+    }
+}
+
+
+@inject ConfigComparerService ConfigComparer
+
+
+@page "/config-comparison"
+
+<h3>Config File Comparison</h3>
+
+<button @onclick="RunComparison">Run Comparison</button>
+
+@if (results != null && results.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>File Name</th>
+                <th>Source File</th>
+                <th>Destination File</th>
+                <th>Result</th>
+                <th>Source Mismatch Lines</th>
+                <th>Destination Mismatch Lines</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var result in results)
+            {
+                <tr>
+                    <td>@result.FileName</td>
+                    <td>@result.SourceFile</td>
+                    <td>@result.DestinationFile</td>
+                    <td>@result.Result</td>
+                    <td>@result.SourceMismatchLines</td>
+                    <td>@result.DestinationMismatchLines</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ConfigComparisonResult> results;
+
+    private void RunComparison()
+    {
+        var filePairs = new List<(string Source, string Destination)>
+        {
+            ("C:\\Path\\To\\Source\\File1.web.config", "C:\\Path\\To\\Destination\\File1.web.config"),
+            ("C:\\Path\\To\\Source\\File2.web.config", "C:\\Path\\To\\Destination\\File2.web.config")
+        };
+
+        results = ConfigComparer.CompareConfigFiles(filePairs);
+
+        // Optionally generate the HTML report and save it to disk
+        string outputReportPath = "C:\\ComparisonReport.html";
+        ConfigComparer.GenerateHtmlReport(results, outputReportPath);
+    }
+}
+
+
