@@ -1,0 +1,127 @@
+public class ConfigComparisonResult
+{
+    public string FileName { get; set; }
+    public string SourceFolder { get; set; }
+    public string DestinationFolder { get; set; }
+    public string Result { get; set; }
+    public string SourceMismatchLines { get; set; }
+    public string DestinationMismatchLines { get; set; }
+}
+
+2.
+using System.IO;
+
+public class ConfigComparerService
+{
+    public List<ConfigComparisonResult> CompareConfigFiles(List<(string Source, string Destination)> folderPairs)
+    {
+        var results = new List<ConfigComparisonResult>();
+
+        foreach (var pair in folderPairs)
+        {
+            string sourceFolder = pair.Source;
+            string destinationFolder = pair.Destination;
+
+            var sourceFiles = Directory.GetFiles(sourceFolder, "*.config", SearchOption.AllDirectories);
+
+            foreach (var sourceFilePath in sourceFiles)
+            {
+                string destinationFilePath = sourceFilePath.Replace(sourceFolder, destinationFolder);
+
+                if (File.Exists(destinationFilePath))
+                {
+                    var sourceFileContent = File.ReadAllLines(sourceFilePath);
+                    var destinationFileContent = File.ReadAllLines(destinationFilePath);
+
+                    var mismatchSourceLines = new List<string>();
+                    var mismatchDestinationLines = new List<string>();
+
+                    for (int i = 0; i < sourceFileContent.Length; i++)
+                    {
+                        if (i >= destinationFileContent.Length || sourceFileContent[i] != destinationFileContent[i])
+                        {
+                            mismatchSourceLines.Add($"{i + 1}. {sourceFileContent[i]}");
+                            if (i < destinationFileContent.Length)
+                                mismatchDestinationLines.Add($"{i + 1}. {destinationFileContent[i]}");
+                        }
+                    }
+
+                    string result = mismatchSourceLines.Count == 0 ? "Matching" : "Not Matching";
+
+                    results.Add(new ConfigComparisonResult
+                    {
+                        FileName = Path.GetFileName(sourceFilePath),
+                        SourceFolder = Path.GetDirectoryName(sourceFilePath),
+                        DestinationFolder = Path.GetDirectoryName(destinationFilePath),
+                        Result = result,
+                        SourceMismatchLines = string.Join("\n", mismatchSourceLines),
+                        DestinationMismatchLines = string.Join("\n", mismatchDestinationLines)
+                    });
+                }
+            }
+        }
+
+        return results;
+    }
+}
+
+3.@page "/config-comparison"
+@inject ConfigComparerService ConfigComparer
+
+<h3>Config File Comparison</h3>
+
+<button @onclick="RunComparison">Run Comparison</button>
+
+@if (results != null && results.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>File Name</th>
+                <th>Source Folder</th>
+                <th>Destination Folder</th>
+                <th>Result</th>
+                <th>Source Mismatch Lines</th>
+                <th>Destination Mismatch Lines</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var result in results)
+            {
+                <tr>
+                    <td>@result.FileName</td>
+                    <td>@result.SourceFolder</td>
+                    <td>@result.DestinationFolder</td>
+                    <td>@result.Result</td>
+                    <td>@result.SourceMismatchLines</td>
+                    <td>@result.DestinationMismatchLines</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ConfigComparisonResult> results;
+
+    private void RunComparison()
+    {
+        var folderPairs = new List<(string Source, string Destination)>
+        {
+            ("C:\\SourceFolder1", "C:\\DestinationFolder1"),
+            ("C:\\SourceFolder2", "C:\\DestinationFolder2")
+        };
+
+        results = ConfigComparer.CompareConfigFiles(folderPairs);
+    }
+}
+
+4.
+builder.Services.AddSingleton<ConfigComparerService>();
+
+5.
+<li class="nav-item px-3">
+    <NavLink class="nav-link" href="config-comparison">
+        <span class="oi oi-list-rich" aria-hidden="true"></span> Config Comparison
+    </NavLink>
+</li>
