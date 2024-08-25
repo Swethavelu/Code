@@ -160,3 +160,190 @@ namespace YourNamespace.Pages
     </div>
 </body>
 </html>
+
+
+@page
+@model IndexModel
+@inject ConfigComparisonService ConfigComparisonService
+
+<h1>File Comparison Tool</h1>
+
+<form method="post">
+    <div id="file-pairs">
+        <div class="file-pair">
+            <label>Source File:</label>
+            <input type="text" name="FilePairs[0].Source" class="form-control" />
+            <label>Destination File:</label>
+            <input type="text" name="FilePairs[0].Destination" class="form-control" />
+        </div>
+    </div>
+    <button type="button" id="add-file-pair">Add Another File Pair</button>
+    <button type="submit">Compare Files</button>
+</form>
+
+@if (Model.Results != null && Model.Results.Any())
+{
+    <h2>Comparison Results</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>File Name</th>
+                <th>Source File</th>
+                <th>Destination File</th>
+                <th>Result</th>
+                <th>Source Mismatch Lines</th>
+                <th>Destination Mismatch Lines</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var result in Model.Results)
+            {
+                <tr>
+                    <td>@result.FileName</td>
+                    <td>@result.SourceFile</td>
+                    <td>@result.DestinationFile</td>
+                    <td>@result.Result</td>
+                    <td>@result.SourceMismatchLines</td>
+                    <td>@result.DestinationMismatchLines</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@section Scripts {
+    <script>
+        document.getElementById('add-file-pair').addEventListener('click', function () {
+            var filePairsDiv = document.getElementById('file-pairs');
+            var newIndex = filePairsDiv.children.length;
+            var newPairHtml = `
+                <div class="file-pair">
+                    <label>Source File:</label>
+                    <input type="text" name="FilePairs[${newIndex}].Source" class="form-control" />
+                    <label>Destination File:</label>
+                    <input type="text" name="FilePairs[${newIndex}].Destination" class="form-control" />
+                </div>`;
+            filePairsDiv.insertAdjacentHTML('beforeend', newPairHtml);
+        });
+    </script>
+}
+
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using YourNamespace.Services;
+using System.Collections.Generic;
+
+public class IndexModel : PageModel
+{
+    private readonly ConfigComparisonService _configComparisonService;
+
+    public IndexModel(ConfigComparisonService configComparisonService)
+    {
+        _configComparisonService = configComparisonService;
+    }
+
+    [BindProperty]
+    public List<FilePair> FilePairs { get; set; } = new List<FilePair>();
+
+    public List<ComparisonResult> Results { get; set; }
+
+    public void OnPost()
+    {
+        Results = _configComparisonService.CompareFiles(FilePairs);
+    }
+}
+
+public class FilePair
+{
+    public string Source { get; set; }
+    public string Destination { get; set; }
+}
+
+public class ComparisonResult
+{
+    public string FileName { get; set; }
+    public string SourceFile { get; set; }
+    public string DestinationFile { get; set; }
+    public string Result { get; set; }
+    public string SourceMismatchLines { get; set; }
+    public string DestinationMismatchLines { get; set; }
+}
+
+using System.Collections.Generic;
+using System.IO;
+
+namespace YourNamespace.Services
+{
+    public class ConfigComparisonService
+    {
+        public List<ComparisonResult> CompareFiles(List<FilePair> filePairs)
+        {
+            var results = new List<ComparisonResult>();
+
+            foreach (var pair in filePairs)
+            {
+                var result = new ComparisonResult
+                {
+                    FileName = Path.GetFileName(pair.Source),
+                    SourceFile = pair.Source,
+                    DestinationFile = pair.Destination
+                };
+
+                if (File.Exists(pair.Source) && File.Exists(pair.Destination))
+                {
+                    var sourceFileContent = File.ReadAllLines(pair.Source);
+                    var destinationFileContent = File.ReadAllLines(pair.Destination);
+
+                    var mismatchSourceLines = new List<string>();
+                    var mismatchDestinationLines = new List<string>();
+
+                    for (int i = 0; i < System.Math.Min(sourceFileContent.Length, destinationFileContent.Length); i++)
+                    {
+                        if (sourceFileContent[i] != destinationFileContent[i])
+                        {
+                            mismatchSourceLines.Add($"{i + 1}. {sourceFileContent[i]}");
+                            mismatchDestinationLines.Add($"{i + 1}. {destinationFileContent[i]}");
+                        }
+                    }
+
+                    if (sourceFileContent.Length > destinationFileContent.Length)
+                    {
+                        for (int i = destinationFileContent.Length; i < sourceFileContent.Length; i++)
+                        {
+                            mismatchSourceLines.Add($"{i + 1}. {sourceFileContent[i]}");
+                        }
+                    }
+                    else if (sourceFileContent.Length < destinationFileContent.Length)
+                    {
+                        for (int i = sourceFileContent.Length; i < destinationFileContent.Length; i++)
+                        {
+                            mismatchDestinationLines.Add($"{i + 1}. {destinationFileContent[i]}");
+                        }
+                    }
+
+                    if (mismatchSourceLines.Count == 0 && mismatchDestinationLines.Count == 0)
+                    {
+                        result.Result = "Matching";
+                    }
+                    else
+                    {
+                        result.Result = "Not Matching";
+                    }
+
+                    result.SourceMismatchLines = string.Join("\n", mismatchSourceLines);
+                    result.DestinationMismatchLines = string.Join("\n", mismatchDestinationLines);
+                }
+                else
+                {
+                    result.Result = "One or both files not found";
+                }
+
+                results.Add(result);
+            }
+
+            return results;
+        }
+    }
+}
+
