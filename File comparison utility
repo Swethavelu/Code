@@ -347,3 +347,187 @@ namespace YourNamespace.Services
     }
 }
 
+≠====≠=============
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using YourNamespace.Services; // Replace with the actual namespace of your service
+using System.Collections.Generic;
+
+namespace YourNamespace.Pages // Replace with your actual namespace
+{
+    public class IndexModel : PageModel
+    {
+        private readonly ConfigComparisonService _configComparisonService;
+
+        public IndexModel(ConfigComparisonService configComparisonService)
+        {
+            _configComparisonService = configComparisonService;
+        }
+
+        public List<ComparisonResult> ComparisonResults { get; set; }
+
+        public void OnGet()
+        {
+            // Initialize or handle any logic when the page is loaded
+        }
+
+        public void OnPostCompare(string[] sourcePaths, string[] destinationPaths)
+        {
+            // Use the service to perform the comparison and store the results
+            ComparisonResults = _configComparisonService.CompareConfigs(sourcePaths, destinationPaths);
+        }
+    }
+}
+
+
+
+@page
+@model YourNamespace.Pages.IndexModel
+
+<h2>Config File Comparison</h2>
+
+<form method="post">
+    <div id="filePairs">
+        <div>
+            <label>Source Path:</label>
+            <input type="text" name="sourcePaths" />
+            <label>Destination Path:</label>
+            <input type="text" name="destinationPaths" />
+        </div>
+    </div>
+    <button type="button" onclick="addFilePair()">Add another file pair</button>
+    <button type="submit" asp-page-handler="Compare">Compare</button>
+</form>
+
+@if (Model.ComparisonResults != null && Model.ComparisonResults.Count > 0)
+{
+    <h3>Comparison Results</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>FileName</th>
+                <th>Source File</th>
+                <th>Destination File</th>
+                <th>Result</th>
+                <th>Source Mismatch Lines</th>
+                <th>Destination Mismatch Lines</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var result in Model.ComparisonResults)
+            {
+                <tr>
+                    <td>@result.FileName</td>
+                    <td>@result.SourceFile</td>
+                    <td>@result.DestinationFile</td>
+                    <td>@result.Result</td>
+                    <td><pre>@result.SourceMismatchLines</pre></td>
+                    <td><pre>@result.DestinationMismatchLines</pre></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@section Scripts {
+    <script>
+        function addFilePair() {
+            var filePairsDiv = document.getElementById("filePairs");
+            var newPairDiv = document.createElement("div");
+            newPairDiv.innerHTML = '<label>Source Path:</label><input type="text" name="sourcePaths" /> <label>Destination Path:</label><input type="text" name="destinationPaths" />';
+            filePairsDiv.appendChild(newPairDiv);
+        }
+    </script>
+}
+
+
+using System.Collections.Generic;
+using System.IO;
+
+namespace YourNamespace.Services
+{
+    public class ConfigComparisonService
+    {
+        public List<ComparisonResult> CompareConfigs(string[] sourcePaths, string[] destinationPaths)
+        {
+            var results = new List<ComparisonResult>();
+
+            for (int i = 0; i < sourcePaths.Length; i++)
+            {
+                var sourcePath = sourcePaths[i];
+                var destinationPath = destinationPaths[i];
+
+                if (File.Exists(sourcePath) && File.Exists(destinationPath))
+                {
+                    var sourceFileContent = File.ReadAllLines(sourcePath);
+                    var destinationFileContent = File.ReadAllLines(destinationPath);
+
+                    var mismatchSourceLines = new List<string>();
+                    var mismatchDestinationLines = new List<string>();
+
+                    for (int j = 0; j < Math.Min(sourceFileContent.Length, destinationFileContent.Length); j++)
+                    {
+                        if (sourceFileContent[j] != destinationFileContent[j])
+                        {
+                            mismatchSourceLines.Add($"{j + 1}. {sourceFileContent[j]}");
+                            mismatchDestinationLines.Add($"{j + 1}. {destinationFileContent[j]}");
+                        }
+                    }
+
+                    // Handle cases where the files have different lengths
+                    if (sourceFileContent.Length > destinationFileContent.Length)
+                    {
+                        for (int j = destinationFileContent.Length; j < sourceFileContent.Length; j++)
+                        {
+                            mismatchSourceLines.Add($"{j + 1}. {sourceFileContent[j]}");
+                        }
+                    }
+                    else if (sourceFileContent.Length < destinationFileContent.Length)
+                    {
+                        for (int j = sourceFileContent.Length; j < destinationFileContent.Length; j++)
+                        {
+                            mismatchDestinationLines.Add($"{j + 1}. {destinationFileContent[j]}");
+                        }
+                    }
+
+                    var result = mismatchSourceLines.Count == 0 && mismatchDestinationLines.Count == 0
+                        ? "Matching"
+                        : "Not Matching";
+
+                    results.Add(new ComparisonResult
+                    {
+                        FileName = Path.GetFileName(sourcePath),
+                        SourceFile = sourcePath,
+                        DestinationFile = destinationPath,
+                        Result = result,
+                        SourceMismatchLines = string.Join("\n", mismatchSourceLines),
+                        DestinationMismatchLines = string.Join("\n", mismatchDestinationLines)
+                    });
+                }
+                else
+                {
+                    results.Add(new ComparisonResult
+                    {
+                        FileName = Path.GetFileName(sourcePath),
+                        SourceFile = sourcePath,
+                        DestinationFile = destinationPath,
+                        Result = "One or both files not found",
+                        SourceMismatchLines = "",
+                        DestinationMismatchLines = ""
+                    });
+                }
+            }
+
+            return results;
+        }
+    }
+
+    public class ComparisonResult
+    {
+        public string FileName { get; set; }
+        public string SourceFile { get; set; }
+        public string DestinationFile { get; set; }
+        public string Result { get; set; }
+        public string SourceMismatchLines { get; set; }
+        public string DestinationMismatchLines { get; set; }
+    }
+}
