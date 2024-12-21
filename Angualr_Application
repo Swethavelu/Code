@@ -1,0 +1,253 @@
+Step 1: Set up Angular Application
+Install Angular CLI:
+
+bash
+Copy code
+npm install -g @angular/cli
+Create a new Angular project:
+
+bash
+Copy code
+ng new api-authorization-app
+cd api-authorization-app
+Install Oracle DB Package for Node.js: Install the oracledb package to handle Oracle database connections:
+
+bash
+Copy code
+npm install oracledb
+Step 2: Backend Node.js Service
+Create a backend service for database interaction:
+
+Inside the Angular project, create a folder for the backend:
+bash
+Copy code
+mkdir backend
+cd backend
+npm init -y
+npm install express body-parser oracledb cors
+Create the server.js file:
+
+javascript
+Copy code
+const express = require('express');
+const bodyParser = require('body-parser');
+const oracledb = require('oracledb');
+const cors = require('cors');
+
+const app = express();
+app.use(bodyParser.json());
+app.use(cors());
+
+const dbConfig = {
+  user: 'your_username',
+  password: 'your_password',
+  connectString: 'your_connection_string',
+};
+
+// Get all API_Authorization records
+app.get('/api/authorization', async (req, res) => {
+  try {
+    let connection = await oracledb.getConnection(dbConfig);
+    const result = await connection.execute('SELECT * FROM API_Authorization', [], {
+      outFormat: oracledb.OUT_FORMAT_OBJECT,
+    });
+    res.json(result.rows);
+    await connection.close();
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+// Add a new API_Authorization record
+app.post('/api/authorization', async (req, res) => {
+  const { Originator_AIT, API_Flow, Originator_Client_Id, API_User, Access_Flag, CreatedById } = req.body;
+  const query = `
+    INSERT INTO API_Authorization (
+      Originator_AIT, API_Flow, Originator_Client_Id, API_User, Access_Flag, CreatedById, CreatedDate, ModifiedById, ModifiedDate
+    ) VALUES (
+      :Originator_AIT, :API_Flow, :Originator_Client_Id, :API_User, :Access_Flag, :CreatedById, SYSDATE, :CreatedById, SYSDATE
+    )`;
+
+  try {
+    let connection = await oracledb.getConnection(dbConfig);
+    await connection.execute(query, {
+      Originator_AIT,
+      API_Flow,
+      Originator_Client_Id,
+      API_User,
+      Access_Flag,
+      CreatedById,
+    }, { autoCommit: true });
+    res.status(201).send('Record added successfully');
+    await connection.close();
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+const PORT = 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+Run the backend server:
+
+bash
+Copy code
+node server.js
+Step 3: Frontend Angular Development
+Generate a service for HTTP requests:
+
+bash
+Copy code
+ng generate service services/authorization
+authorization.service.ts:
+
+typescript
+Copy code
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class AuthorizationService {
+  private apiUrl = 'http://localhost:3000/api/authorization';
+
+  constructor(private http: HttpClient) {}
+
+  getAuthorizations(): Observable<any[]> {
+    return this.http.get<any[]>(this.apiUrl);
+  }
+
+  addAuthorization(data: any): Observable<any> {
+    return this.http.post<any>(this.apiUrl, data);
+  }
+}
+Generate components for displaying and adding records:
+
+bash
+Copy code
+ng generate component components/authorization-list
+ng generate component components/add-authorization
+Authorization List Component: authorization-list.component.ts:
+
+typescript
+Copy code
+import { Component, OnInit } from '@angular/core';
+import { AuthorizationService } from '../../services/authorization.service';
+
+@Component({
+  selector: 'app-authorization-list',
+  templateUrl: './authorization-list.component.html',
+  styleUrls: ['./authorization-list.component.css'],
+})
+export class AuthorizationListComponent implements OnInit {
+  authorizations: any[] = [];
+
+  constructor(private authService: AuthorizationService) {}
+
+  ngOnInit(): void {
+    this.authService.getAuthorizations().subscribe(data => {
+      this.authorizations = data;
+    });
+  }
+}
+authorization-list.component.html:
+
+html
+Copy code
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Originator AIT</th>
+      <th>API Flow</th>
+      <th>Originator Client ID</th>
+      <th>API User</th>
+      <th>Access Flag</th>
+      <th>Created By</th>
+      <th>Created Date</th>
+      <th>Modified By</th>
+      <th>Modified Date</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let auth of authorizations">
+      <td>{{ auth.ID }}</td>
+      <td>{{ auth.Originator_AIT }}</td>
+      <td>{{ auth.API_Flow }}</td>
+      <td>{{ auth.Originator_Client_Id }}</td>
+      <td>{{ auth.API_User }}</td>
+      <td>{{ auth.Access_Flag }}</td>
+      <td>{{ auth.CreatedById }}</td>
+      <td>{{ auth.CreatedDate }}</td>
+      <td>{{ auth.ModifiedById }}</td>
+      <td>{{ auth.ModifiedDate }}</td>
+    </tr>
+  </tbody>
+</table>
+Add Authorization Component: add-authorization.component.ts:
+
+typescript
+Copy code
+import { Component } from '@angular/core';
+import { AuthorizationService } from '../../services/authorization.service';
+
+@Component({
+  selector: 'app-add-authorization',
+  templateUrl: './add-authorization.component.html',
+  styleUrls: ['./add-authorization.component.css'],
+})
+export class AddAuthorizationComponent {
+  authorization = {
+    Originator_AIT: '',
+    API_Flow: '',
+    Originator_Client_Id: '',
+    API_User: '',
+    Access_Flag: '',
+    CreatedById: 'currentUserId', // Replace with dynamic user fetching logic
+  };
+
+  constructor(private authService: AuthorizationService) {}
+
+  addAuthorization(): void {
+    this.authService.addAuthorization(this.authorization).subscribe(() => {
+      alert('Authorization added successfully');
+    });
+  }
+}
+add-authorization.component.html:
+
+html
+Copy code
+<form (ngSubmit)="addAuthorization()">
+  <label>Originator AIT</label>
+  <input [(ngModel)]="authorization.Originator_AIT" name="Originator_AIT" required />
+  <label>API Flow</label>
+  <input [(ngModel)]="authorization.API_Flow" name="API_Flow" required />
+  <label>Originator Client ID</label>
+  <input [(ngModel)]="authorization.Originator_Client_Id" name="Originator_Client_Id" required />
+  <label>API User</label>
+  <input [(ngModel)]="authorization.API_User" name="API_User" required />
+  <label>Access Flag</label>
+  <input [(ngModel)]="authorization.Access_Flag" name="Access_Flag" required />
+  <button type="submit">Add Authorization</button>
+</form>
+Step 4: Integrate Components into the Application
+Update app-routing.module.ts:
+
+typescript
+Copy code
+const routes: Routes = [
+  { path: 'authorizations', component: AuthorizationListComponent },
+  { path: 'add-authorization', component: AddAuthorizationComponent },
+];
+Add links in app.component.html:
+
+html
+Copy code
+<nav>
+  <a routerLink="/authorizations">View Authorizations</a>
+  <a routerLink="/add-authorization">Add Authorization</a>
+</nav>
+<router-outlet></router-outlet>
+With this setup, the application displays all records and allows new records to be added while automatically handling default fields like CreatedDate and CreatedById.
