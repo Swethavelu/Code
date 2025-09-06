@@ -126,3 +126,55 @@ if errors:
     logger.warning(f"{len(errors)} script(s) failed.")
 else:
     logger.info("All scripts ran successfully.")
+
+
+
+latest:
+import subprocess
+import shutil
+import os
+import sys
+
+# -------- Configuration --------
+src_file = "scripts/query.sql"              # Source file path
+dest_file = "deployed/query.sql"            # Destination path
+git_branch = "main"                         # Target Git branch
+commit_message = "Deploy SQL file via script"
+repo_dir = os.getcwd()                      # Change if needed
+
+# -------- Utility to run shell commands --------
+def run_command(cmd, cwd=None):
+    try:
+        print(f"> Running: {' '.join(cmd)}")
+        result = subprocess.run(cmd, cwd=cwd, check=True, text=True, capture_output=True)
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Command failed: {' '.join(cmd)}")
+        print(e.stderr)
+        sys.exit(1)
+
+# -------- Step 1: Copy the file --------
+try:
+    os.makedirs(os.path.dirname(dest_file), exist_ok=True)
+    shutil.copy(src_file, dest_file)
+    print(f"✅ Copied: {src_file} → {dest_file}")
+except Exception as e:
+    print(f"❌ File copy failed: {e}")
+    sys.exit(1)
+
+# -------- Step 2: Git operations --------
+
+# Checkout branch
+run_command(["git", "checkout", git_branch], cwd=repo_dir)
+
+# Add file
+run_command(["git", "add", dest_file], cwd=repo_dir)
+
+# Commit
+run_command(["git", "commit", "-m", commit_message], cwd=repo_dir)
+
+# Push
+run_command(["git", "push", "origin", git_branch], cwd=repo_dir)
+
+print("🚀 Deployment completed successfully.")
+
