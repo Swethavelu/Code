@@ -1,3 +1,77 @@
+import PySimpleGUI as sg
+import pandas as pd
+
+def get_sheet_names(excel_file):
+    """Return all sheet names from an Excel file"""
+    try:
+        xl = pd.ExcelFile(excel_file)
+        return xl.sheet_names
+    except Exception as e:
+        sg.popup_error("Error reading Excel file:", e)
+        return []
+
+layout = [
+    [sg.Text("Select Excel File:"), sg.Input(key="-EXCEL-"), sg.FileBrowse(file_types=(("Excel Files", "*.xlsx"),))],
+    [sg.Button("Load Sheets")],
+    [sg.Text("Select Repo Folder:"), sg.Input(key="-REPO-"), sg.FolderBrowse()],
+    [sg.Text("Select Config File:"), sg.Input(key="-CONFIG-"), sg.FileBrowse(file_types=(("Config Files", "*.json"),))],
+    [sg.Text("Available Sheets:")],
+    [sg.Listbox(values=[], select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE, size=(40, 6), key="-SHEETS-")],
+    [sg.Button("Run Analysis"), sg.Button("Run Replacement"), sg.Button("Exit")]
+]
+
+window = sg.Window("BOA - SQL Captain", layout)
+
+sheet_names = []
+
+while True:
+    event, values = window.read()
+    if event in (sg.WINDOW_CLOSED, "Exit"):
+        break
+
+    elif event == "Load Sheets":
+        excel_file = values["-EXCEL-"]
+        if excel_file:
+            sheet_names = get_sheet_names(excel_file)
+            window["-SHEETS-"].update(sheet_names)
+        else:
+            sg.popup_error("Please select an Excel file first.")
+
+    elif event == "Run Analysis":
+        excel = values["-EXCEL-"]
+        repo = values["-REPO-"]
+        config = values["-CONFIG-"]
+        selected_sheets = values["-SHEETS-"]
+
+        if excel and repo and config and selected_sheets:
+            sg.popup("Running analysis...",
+                     f"Excel: {excel}",
+                     f"Repo: {repo}",
+                     f"Config: {config}",
+                     f"Sheets: {', '.join(selected_sheets)}")
+            # 🔹 call your analysis function here
+        else:
+            sg.popup_error("Please provide all inputs and select sheets.")
+
+    elif event == "Run Replacement":
+        excel = values["-EXCEL-"]
+        repo = values["-REPO-"]
+        config = values["-CONFIG-"]
+        selected_sheets = values["-SHEETS-"]
+
+        if excel and repo and config and selected_sheets:
+            sg.popup("Running replacement...",
+                     f"Excel: {excel}",
+                     f"Repo: {repo}",
+                     f"Config: {config}",
+                     f"Sheets: {', '.join(selected_sheets)}")
+            # 🔹 call your replacement function here
+        else:
+            sg.popup_error("Please provide all inputs and select sheets.")
+
+window.close()
+
+++++++++++++++++++++++++++
 import pandas as pd
 import os
 import re
