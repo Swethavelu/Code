@@ -1,0 +1,117 @@
+import os
+import pandas as pd
+from nicegui import ui
+from analysis import analyse_fields
+from col_rename import replace_columns
+from git_commands import git_checkout, git_push
+
+# Global state
+repo_path = ""
+excel_path = ""
+selected_sheets = []
+action = "Run Analysis"
+push_to_repo = False
+default_branch = ""
+branch_name = ""
+commit_message = ""
+
+
+def validate_inputs() -> bool:
+    """Validate repo and Excel paths"""
+    global repo_path, excel_path
+    valid = True
+    if repo_path and not os.path.isdir(repo_path):
+        ui.notify("❌ Repository path does not exist or is not a directory", color="negative")
+        valid = False
+
+    if excel_path:
+        if not os.path.exists(excel_path):
+            ui.notify("❌ Excel file path does not exist", color="negative")
+            valid = False
+        elif not excel_path.lower().endswith((".xls", ".xlsx")):
+            ui.notify("❌ File is not an Excel file (.xls or .xlsx)", color="negative")
+            valid = False
+
+    return valid
+
+
+def run_action():
+    """Perform analysis or file replacement based on user input"""
+    global repo_path, excel_path, selected_sheets, action, push_to_repo
+    if not validate_inputs():
+        return
+
+    try:
+        if action == "Run Analysis":
+            res = analyse_fields(selected_sheets, excel_path, repo_path)
+            if res is True:
+                ui.notify(f"✅ Results updated in 'result' sheet of {excel_path}", color="positive")
+            else:
+                ui.notify(f"❌ Error during analysis: {res}", color="negative")
+
+        elif action == "Replace Files":
+            if push_to_repo:
+                if default_branch and branch_name and commit_message:
+                    git_checkout(repo_path, default_branch, branch_name, commit_message)
+
+                    res = replace_columns(selected_sheets, excel_path)
+                    if res is True:
+                        ui.notify("✅ Files updated with new column names", color="positive")
+                        git_push(branch_name)
+                        ui.notify(f"🚀 Changes pushed to branch '{branch_name}'", color="positive")
+                    else:
+                        ui.notify("❌ Error renaming columns", color="negative")
+                else:
+                    ui.notify("⚠️ Please complete all git fields", color="warning")
+            else:
+                res = replace_columns(selected_sheets, excel_path)
+                if res is True:
+                    ui.notify("✅ Files updated with new column names", color="positive")
+                else:
+                    ui.notify("❌ Error renaming columns", color="negative")
+
+    except Exception as e:
+        ui.notify(f"❌ Error reading Excel: {e}", color="negative")
+
+
+# ---------------- UI ---------------- #
+
+ui.label("Rebase Agent").classes("text-2xl font-bold mb-4")
+
+repo_input = ui.input("Repository folder path").bind_value_to("repo_path", globals())
+excel_input = ui.input("Input Excel path").bind_value_to("excel_path", globals())
+
+
+def load_sheets():
+    global selected_sheets
+    if validate_inputs() and excel_path:
+        try:
+            xl = pd.ExcelFile(excel_path)
+            ui.notify("Excel loaded. Select sheets below:", color="info")
+            with ui.expansion("Select Excel Sheets", value=True):
+                ui.select(xl.sheet_names, multiple=True).bind_value_to("selected_sheets", globals())
+        except Exception as e:
+            ui.notify(f"❌ Error reading Excel: {e}", color="negative")
+
+
+ui.button("Load Sheets", on_click=load_sheets)
+
+ui.radio(["Run Analysis", "Replace Files"], value="Run Analysis").bind_value_to("action", globals())
+
+
+def toggle_push(checked: bool):
+    global push_to_repo
+    push_to_repo = checked
+    if checked:
+        with ui.column():
+            ui.input("Default branch (e.g. main)").bind_value_to("default_branch", globals())
+            ui.input("Branch name").bind_value_to("branch_name", globals())
+            ui.input("Commit message").bind_value_to("commit_message", globals())
+
+
+ui.checkbox("Push changes to repository?", on_change=lambda e: toggle_push(e.value))
+
+ui.button("Run Action", on_click=run_action, color="green")
+
+# Run app natively in webview
+ui.run(native=True, title="SQL Master")
